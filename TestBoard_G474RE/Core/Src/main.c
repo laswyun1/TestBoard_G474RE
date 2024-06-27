@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "usart.h"
+#include "tim.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -45,12 +46,20 @@
 
 /* USER CODE BEGIN PV */
 
+uint32_t IC_Val1 = 0;
+uint32_t IC_Val2 = 0;
+uint32_t difference = 0;
+uint8_t firstCaptureCheck = 0;  // is the first value captured ?
+uint8_t distance  = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+void usDelay(uint16_t time);
+void us_Delay(uint32_t us_delay);
+void Read_RCW0001(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -87,7 +96,19 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_LPUART1_UART_Init();
+  MX_TIM2_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
+
+  CoreDebug->DEMCR &= ~CoreDebug_DEMCR_TRCENA_Msk;
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->CTRL &= ~DWT_CTRL_CYCCNTENA_Msk;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+  DWT->CYCCNT = 0;
+
+
+  HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_3);
+  HAL_TIM_Base_Start(&htim3);
 
   /* USER CODE END 2 */
 
@@ -95,6 +116,9 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  Read_RCW0001();
+	  HAL_Delay(200);
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -149,6 +173,74 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+void usDelay(uint16_t time)
+{
+	__HAL_TIM_SET_COUNTER(&htim3, 0);
+	while (__HAL_TIM_GET_COUNTER(&htim3) < time){
+
+	}
+}
+
+void us_Delay(uint32_t us_delay)
+{
+  uint32_t tickstart = DWT->CYCCNT/170;
+  uint32_t wait = us_delay;
+
+  while ((DWT->CYCCNT/170 - tickstart) < wait)
+  {
+  }
+}
+
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+	if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_3)  				// if the interrupt source is channel3
+	{
+		if (firstCaptureCheck == 0) // if the first value is not captured
+		{
+			IC_Val1 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_3); // read the first value
+			firstCaptureCheck = 1;  // set the first captured as true
+			// Now change the polarity to falling edge
+			__HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_3, TIM_INPUTCHANNELPOLARITY_FALLING);
+		}
+
+		else if (firstCaptureCheck==1)   // if the first is already captured
+		{
+			IC_Val2 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_3);  // read second value
+			__HAL_TIM_SET_COUNTER(htim, 0);  // reset the counter
+
+			if (IC_Val2 > IC_Val1)
+			{
+				difference = IC_Val2 - IC_Val1;
+			}
+
+			else if (IC_Val1 > IC_Val2)
+			{
+				difference = (0xffff - IC_Val1) + IC_Val2;
+			}
+
+			distance = difference * 0.034/2;
+			firstCaptureCheck = 0; // set it back to false
+
+			// set polarity to rising edge
+			__HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_3, TIM_INPUTCHANNELPOLARITY_RISING);
+			__HAL_TIM_DISABLE_IT(&htim2, TIM_IT_CC3);
+		}
+	}
+}
+
+
+void Read_RCW0001(void)
+{
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);    // pull the TRIG pin HIGH
+	usDelay(10);  // wait for 10 us
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);  // pull the TRIG pin low
+
+	__HAL_TIM_ENABLE_IT(&htim2, TIM_IT_CC3);
+}
+
+
 
 /* USER CODE END 4 */
 
