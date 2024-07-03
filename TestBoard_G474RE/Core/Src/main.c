@@ -41,6 +41,14 @@ typedef struct _MPU6050Data_t {
     float gyrX;
     float gyrY;
     float gyrZ;
+
+    float accXoffset;
+    float accYoffset;
+    float accZoffset;
+
+    float gyrXoffset;
+    float gyrYoffset;
+    float gyrZoffset;
 } MPU6050Data_t;
 
 
@@ -128,6 +136,9 @@ uint32_t codeTime = 0;
 uint32_t totalElapsedTime = 0;
 uint32_t breakRT = 0;
 
+uint8_t cmd = 0;
+uint8_t calibDone = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -137,7 +148,8 @@ void SystemClock_Config(void);
 uint8_t Init6Axis(I2C_HandleTypeDef* hi2c);
 uint8_t WriteReg(I2C_HandleTypeDef* hi2c);
 uint8_t ReadReg(I2C_HandleTypeDef* hi2c);
-void GetIMUValues(I2C_HandleTypeDef* hi2c);
+uint8_t GetIMUValues(I2C_HandleTypeDef* hi2c, uint8_t CalibON);
+void CalibrateIMU(I2C_HandleTypeDef* hi2c);
 
 /* USER CODE END PFP */
 
@@ -185,8 +197,24 @@ int main(void)
   DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
   DWT->CYCCNT = 0;
 
+
+
   /* Initialize the IMU */
   Init6Axis(&hi2c1);
+
+  /* Calibration with -y axis */
+//  CalibrateIMU(&hi2c1);
+
+  /* Used Calibrated Values */
+  IMUData.accXoffset = 0.0542423353;
+  IMUData.accYoffset = 0.0239739418;
+  IMUData.accZoffset = -0.245294675;
+  IMUData.gyrXoffset = -0.131917208;
+  IMUData.gyrYoffset = -0.965673268;
+  IMUData.gyrZoffset = 0.522041917;
+
+
+
 
   HAL_TIM_Base_Start_IT(&htim3);
 
@@ -261,7 +289,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 
 		/* Choose the Function you want to RUN */
-		GetIMUValues(&hi2c1);
+		GetIMUValues(&hi2c1, 1);
 		/* ----------------------------------- */
 
 		if (msTime == 1000){
@@ -317,7 +345,7 @@ uint8_t ReadReg(I2C_HandleTypeDef* hi2c)
 	return state;
 }
 
-void GetIMUValues(I2C_HandleTypeDef* hi2c)
+uint8_t GetIMUValues(I2C_HandleTypeDef* hi2c, uint8_t CalibON)
 {
 	uint8_t state = 0;
 	state = ReadReg(hi2c);
@@ -336,10 +364,59 @@ void GetIMUValues(I2C_HandleTypeDef* hi2c)
 	    IMUData.gyrX = (float)(rawValues[4] / MPU6050_GYRO_SCALE_FACTOR_500dps);
 	    IMUData.gyrY = (float)(rawValues[5] / MPU6050_GYRO_SCALE_FACTOR_500dps);
 	    IMUData.gyrZ = (float)(rawValues[6] / MPU6050_GYRO_SCALE_FACTOR_500dps);
+
+		if (CalibON == 1){
+		    IMUData.accX -= IMUData.accXoffset;
+		    IMUData.accY -= IMUData.accYoffset;
+		    IMUData.accZ -= IMUData.accZoffset;
+
+		    IMUData.gyrX -= IMUData.gyrXoffset;
+		    IMUData.gyrY -= IMUData.gyrYoffset;
+		    IMUData.gyrZ -= IMUData.gyrZoffset;
+		}
 	}
 
-	else {
-		return;
+	return state;
+}
+
+/* Let the vector forwarding ground is equal to [-y axis] */
+void CalibrateIMU(I2C_HandleTypeDef* hi2c)
+{
+	uint8_t state = 0;
+	uint16_t calibNum = 5000;
+	uint16_t correctNum = 0;
+
+	while (cmd == 0) {
+
+	}
+
+	if (cmd == 1) {
+		for (int i = 0; i < calibNum; i++) {
+			state = GetIMUValues(hi2c, 0);
+			if (state == 0) {
+				IMUData.accXoffset += IMUData.accX;
+				IMUData.accYoffset += IMUData.accY;
+				IMUData.accZoffset += IMUData.accZ;
+				IMUData.gyrXoffset += IMUData.gyrX;
+				IMUData.gyrYoffset += IMUData.gyrY;
+				IMUData.gyrZoffset += IMUData.gyrZ;
+
+				correctNum++;
+			}
+			HAL_Delay(1);
+		}
+
+		/* After total calibration */
+		IMUData.accXoffset /= correctNum;
+		IMUData.accYoffset /= correctNum;
+		IMUData.accZoffset /= correctNum;
+		IMUData.gyrXoffset /= correctNum;
+		IMUData.gyrYoffset /= correctNum;
+		IMUData.gyrZoffset /= correctNum;
+
+		IMUData.accYoffset -= 1;
+
+		calibDone = 1;
 	}
 }
 
