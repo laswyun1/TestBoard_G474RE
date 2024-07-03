@@ -18,7 +18,9 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "i2c.h"
 #include "usart.h"
+#include "tim.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -29,10 +31,83 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
+typedef struct _MPU6050Data_t {
+    float accX;
+    float accY;
+    float accZ;
+
+    float temp;
+
+    float gyrX;
+    float gyrY;
+    float gyrZ;
+} MPU6050Data_t;
+
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+/* Device Address */
+#define MPU6050_DEV_ADDR						0xD0U
+
+/* Register Address */
+#define MPU6050_PWR_MGMT_1						0x6BU
+#define MPU6050_PWR_MGMT_2						0x6CU
+#define MPU6050_GYRO_CONFIG						0x1BU
+#define MPU6050_ACCEL_CONFIG					0x1CU
+
+#define MPU6050_ACCEL_XOUT_H					0x3BU	// Information MSB
+#define MPU6050_ACCEL_XOUT_L					0x3CU	// Information LSB
+#define MPU6050_ACCEL_YOUT_H					0x3DU	// Information MSB
+#define MPU6050_ACCEL_YOUT_L					0x3EU	// Information LSB
+#define MPU6050_ACCEL_ZOUT_H					0x3FU	// Information MSB
+#define MPU6050_ACCEL_ZOUT_L					0x40U	// Information LSB
+
+#define MPU6050_TEMP_OUT_H						0x41U	// Information MSB
+#define MPU6050_TEMP_OUT_L						0x42U	// Information LSB
+
+#define MPU6050_GYRO_XOUT_H						0x43U	// Information MSB
+#define MPU6050_GYRO_XOUT_L						0x44U	// Information LSB
+#define MPU6050_GYRO_YOUT_H						0x45U	// Information MSB
+#define MPU6050_GYRO_YOUT_L						0x46U	// Information LSB
+#define MPU6050_GYRO_ZOUT_H						0x47U	// Information MSB
+#define MPU6050_GYRO_ZOUT_L						0x48U	// Information LSB
+
+/* Register Configuration Values */
+#define MPU6050_PWR_MGMT_1_DATA				    0b00000000		// For 0x6B register
+#define MPU6050_PWR_MGMT_2_DATA				    0b00000000		// For 0x6C register
+#define MPU6050_GYR_CONFIG_250dps				0b00000000		// For 0x1B register
+#define MPU6050_GYR_CONFIG_500dps				0b00001000		// For 0x1B register
+#define MPU6050_GYR_CONFIG_1000dps				0b00010000		// For 0x1B register
+#define MPU6050_GYR_CONFIG_2000dps				0b00011000		// For 0x1B register
+#define MPU6050_ACC_CONFIG_2g				   	0b00000000		// For 0x1C register
+#define MPU6050_ACC_CONFIG_4g				    0b00001000		// For 0x1C register
+#define MPU6050_ACC_CONFIG_8g				    0b00010000		// For 0x1C register
+#define MPU6050_ACC_CONFIG_16g				    0b00011000		// For 0x1C register
+
+#define MPU6050_CONTROL_SIZE					1U
+#define MPU6050_MEMADD_SIZE						1U
+#define MPU6050_READDATA_SIZE					14
+#define MPU6050_TOTAL_DATA_NUM					7
+
+
+/* Data Scaling Factors */
+#define MPU6050_ACCEL_SCALE_FACTOR_2g			16384.0f	// 16384 LSB/g
+#define MPU6050_ACCEL_SCALE_FACTOR_4g    		8192.0f		// 8192  LSB/g
+#define MPU6050_ACCEL_SCALE_FACTOR_8g			4096.0f		// 4096	 LSB/g
+#define MPU6050_ACCEL_SCALE_FACTOR_16g			2048.0f		// 2048  LSB/g
+
+#define MPU6050_GYRO_SCALE_FACTOR_250dps		131.0f		// 131  LSB/dps
+#define MPU6050_GYRO_SCALE_FACTOR_500dps     	65.5f		// 65.5 LSB/dps
+#define MPU6050_GYRO_SCALE_FACTOR_1000dps		32.8f		// 32.8 LSB/dps
+#define MPU6050_GYRO_SCALE_FACTOR_2000dps		16.4f		// 16.4 LSB/dps
+
+#define MPU6050_TEMP_SCALE_FACTOR     			340.0f		// Temperature(Celsius) = (Temp register value) / 340.0 + 36.53
+#define MPU6050_TEMP_OFFSET      				36.53f
+
+
 
 /* USER CODE END PD */
 
@@ -45,11 +120,24 @@
 
 /* USER CODE BEGIN PV */
 
+uint8_t rawData[14] = {0};
+MPU6050Data_t IMUData;
+
+uint16_t msTime = 0;
+uint32_t codeTime = 0;
+uint32_t totalElapsedTime = 0;
+uint32_t breakRT = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
+
+uint8_t Init6Axis(I2C_HandleTypeDef* hi2c);
+uint8_t WriteReg(I2C_HandleTypeDef* hi2c);
+uint8_t ReadReg(I2C_HandleTypeDef* hi2c);
+void GetIMUValues(I2C_HandleTypeDef* hi2c);
 
 /* USER CODE END PFP */
 
@@ -87,7 +175,20 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_LPUART1_UART_Init();
+  MX_I2C1_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
+
+  CoreDebug->DEMCR &= ~CoreDebug_DEMCR_TRCENA_Msk;
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->CTRL &= ~DWT_CTRL_CYCCNTENA_Msk;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+  DWT->CYCCNT = 0;
+
+  /* Initialize the IMU */
+  Init6Axis(&hi2c1);
+
+  HAL_TIM_Base_Start_IT(&htim3);
 
   /* USER CODE END 2 */
 
@@ -149,6 +250,98 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if (htim->Instance == htim3.Instance){
+
+		CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+		DWT->CYCCNT = 0;
+		DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+
+
+		/* Choose the Function you want to RUN */
+		GetIMUValues(&hi2c1);
+		/* ----------------------------------- */
+
+		if (msTime == 1000){
+			msTime = 0;
+			totalElapsedTime++;
+		}
+
+		/* Code End */
+		codeTime = DWT->CYCCNT/170;
+		msTime++;
+
+		if (codeTime > 1000){
+			breakRT++;
+		}
+	}
+}
+
+
+uint8_t Init6Axis(I2C_HandleTypeDef* hi2c)
+{
+	uint8_t state = 0;
+	state = HAL_I2C_IsDeviceReady(hi2c, MPU6050_DEV_ADDR, 10, 10);
+
+	if (state == 0){
+		state = WriteReg(hi2c);
+	}
+
+	return state;
+}
+
+uint8_t WriteReg(I2C_HandleTypeDef* hi2c)
+{
+	uint8_t state = 0;
+
+	uint8_t conf_1 = MPU6050_PWR_MGMT_1_DATA;
+	state = HAL_I2C_Mem_Write(hi2c, MPU6050_DEV_ADDR, MPU6050_PWR_MGMT_1, MPU6050_MEMADD_SIZE, &conf_1, MPU6050_CONTROL_SIZE, 10);
+	uint8_t conf_2 = MPU6050_PWR_MGMT_2_DATA;
+	state = HAL_I2C_Mem_Write(hi2c, MPU6050_DEV_ADDR, MPU6050_PWR_MGMT_2, MPU6050_MEMADD_SIZE, &conf_2, MPU6050_CONTROL_SIZE, 10);
+	uint8_t conf_3 = MPU6050_GYR_CONFIG_500dps;
+	state = HAL_I2C_Mem_Write(hi2c, MPU6050_DEV_ADDR, MPU6050_GYRO_CONFIG, MPU6050_MEMADD_SIZE, &conf_3, MPU6050_CONTROL_SIZE, 10);
+	uint8_t conf_4 = MPU6050_ACC_CONFIG_4g;
+	state = HAL_I2C_Mem_Write(hi2c, MPU6050_DEV_ADDR, MPU6050_ACCEL_CONFIG, MPU6050_MEMADD_SIZE, &conf_4, MPU6050_CONTROL_SIZE, 10);
+
+	return state;
+}
+
+uint8_t ReadReg(I2C_HandleTypeDef* hi2c)
+{
+	uint8_t state = 0;
+
+	state = HAL_I2C_Mem_Read(hi2c, MPU6050_DEV_ADDR, MPU6050_ACCEL_XOUT_H, MPU6050_MEMADD_SIZE, rawData, MPU6050_READDATA_SIZE, 1);
+
+	return state;
+}
+
+void GetIMUValues(I2C_HandleTypeDef* hi2c)
+{
+	uint8_t state = 0;
+	state = ReadReg(hi2c);
+
+	if (state == 0) {
+		int16_t rawValues[MPU6050_TOTAL_DATA_NUM] = {0};
+
+		for (uint8_t i = 0; i < MPU6050_TOTAL_DATA_NUM; i++) {
+			rawValues[i] = (int16_t)(rawData[i * 2] << 8 | rawData[i * 2 + 1]);
+		}
+
+	    IMUData.accX = (float)(rawValues[0] / MPU6050_ACCEL_SCALE_FACTOR_4g);
+	    IMUData.accY = (float)(rawValues[1] / MPU6050_ACCEL_SCALE_FACTOR_4g);
+	    IMUData.accZ = (float)(rawValues[2] / MPU6050_ACCEL_SCALE_FACTOR_4g);
+	    IMUData.temp = (float)(rawValues[3] / MPU6050_TEMP_SCALE_FACTOR) + MPU6050_TEMP_OFFSET;
+	    IMUData.gyrX = (float)(rawValues[4] / MPU6050_GYRO_SCALE_FACTOR_500dps);
+	    IMUData.gyrY = (float)(rawValues[5] / MPU6050_GYRO_SCALE_FACTOR_500dps);
+	    IMUData.gyrZ = (float)(rawValues[6] / MPU6050_GYRO_SCALE_FACTOR_500dps);
+	}
+
+	else {
+		return;
+	}
+}
 
 /* USER CODE END 4 */
 
