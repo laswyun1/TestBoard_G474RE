@@ -18,7 +18,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "dma.h"
 #include "usart.h"
 #include "spi.h"
 #include "tim.h"
@@ -26,7 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,14 +46,23 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-#define buffsize 	16
+#define buffsize 	4
 
 uint8_t slaveTxData[buffsize] = {0};
 uint8_t slaveRxData[buffsize] = {0};
 uint8_t masterTxData[buffsize] = {0};
 uint8_t masterRxData[buffsize] = {0};
 
+
+uint8_t slaveRx[buffsize] = {0};
+uint8_t masterRx[buffsize] = {0};
+
 uint8_t cmd = 0;
+
+uint8_t state = 0;
+
+uint8_t* slaveRegRx;
+uint8_t* masterRegRx;
 
 /* USER CODE END PV */
 
@@ -97,7 +105,6 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_DMA_Init();
   MX_LPUART1_UART_Init();
   MX_SPI2_Init();
   MX_SPI3_Init();
@@ -105,22 +112,23 @@ int main(void)
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 
-  HAL_TIM_Base_Start_IT(&htim2);
-  HAL_TIM_Base_Start_IT(&htim3);
+//  HAL_TIM_Base_Start_IT(&htim2);
+//  HAL_TIM_Base_Start_IT(&htim3);
 
   // For the initial miscommunication of SPI //
-  for (uint8_t i = 0; i < 3; i++){
-	  HAL_SPI_Transmit_DMA(&hspi3, masterTxData, 8);
-	  HAL_SPI_Receive_DMA(&hspi2, slaveRxData, 8);
-	  HAL_Delay(1);
-  }
-  HAL_Delay(3);
+//  for (uint8_t i = 0; i < 3; i++){
+//	  HAL_SPI_Transmit_DMA(&hspi3, masterTxData, 8);
+//	  HAL_SPI_Receive_DMA(&hspi2, slaveRxData, 8);
+//	  HAL_Delay(1);
+//  }
+//  HAL_Delay(3);
+//
+//  for (uint8_t i = 0; i < 3; i++){
+//	  HAL_SPI_Transmit_DMA(&hspi2, slaveTxData, 8);
+//  	  HAL_SPI_Receive_DMA(&hspi3, masterRxData, 8);
+//  	  HAL_Delay(1);
+//  }
 
-  for (uint8_t i = 0; i < 3; i++){
-	  HAL_SPI_Transmit_DMA(&hspi2, slaveTxData, 8);
-  	  HAL_SPI_Receive_DMA(&hspi3, masterRxData, 8);
-  	  HAL_Delay(1);
-  }
 
   /* USER CODE END 2 */
 
@@ -130,26 +138,28 @@ int main(void)
   {
 	  // Master -> Slave //
 	  if (cmd == 1){
-		  for (uint8_t i = 0; i < 8; i++){
+		  for (uint8_t i = 0; i < buffsize; i++){
 			  masterTxData[i] = masterTxData[i] + 1;
 		  }
-//		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
-		  HAL_SPI_Transmit_DMA(&hspi3, masterTxData, 8);
-		  HAL_SPI_Receive_DMA(&hspi2, slaveRxData, 8);
-//		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
-		  cmd = 2;
-		  HAL_Delay(10);	// You can remove delay
+		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+		  state = HAL_SPI_Transmit(&hspi3, masterTxData, 4, 1);
+		  state = HAL_SPI_Receive(&hspi2, slaveRxData, 4, 1);
+//		  state = HAL_SPI_TransmitReceive(&hspi3, masterTxData, masterRxData, 8, 10);
+		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+		  cmd = 0;
+//		  HAL_Delay(10);	// You can remove delay
 	  }
 
 	  // Slave -> Master //
 	  if (cmd == 2){
-		  for (uint8_t i = 0; i < 8; i++){
+		  for (uint8_t i = 0; i < buffsize; i++){
 			  slaveTxData[i] = slaveTxData[i] + 1;
 		  }
-		  HAL_SPI_Transmit_DMA(&hspi2, slaveTxData, 8);
-		  HAL_SPI_Receive_DMA(&hspi3, masterRxData, 8);
-		  cmd = 1;
-		  HAL_Delay(10);    // You can remove delay
+		  HAL_SPI_Transmit(&hspi2, slaveTxData, 4, 1);
+		  HAL_SPI_Receive(&hspi3, masterRxData, 4, 1);
+//		  state = HAL_SPI_TransmitReceive(&hspi2, slaveTxData, slaveRxData, 8, 10);
+		  cmd = 0;
+//		  HAL_Delay(10);    // You can remove delay
 	  }
     /* USER CODE END WHILE */
 
@@ -206,23 +216,37 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-	if (htim == &htim2){
-		for (uint8_t i = 0; i < 8; i++){
-			masterTxData[i] = masterTxData[i] + 1;
-		}
-		HAL_SPI_Transmit_DMA(&hspi3, masterTxData, 8);
-		HAL_SPI_Receive_DMA(&hspi2, slaveRxData, 8);
-		HAL_Delay(1);				// It needs delay
-	}
-	if (htim == &htim3){
-		for (uint8_t i = 0; i < 8; i++){
-			slaveTxData[i] = slaveTxData[i] + 1;
-		}
-		HAL_SPI_Transmit_DMA(&hspi2, slaveTxData, 8);
-		HAL_SPI_Receive_DMA(&hspi3, masterRxData, 8);
-		HAL_Delay(1);				// It needs delay
-	}
+//	if (htim == &htim2){
+//		for (uint8_t i = 0; i < 8; i++){
+//			masterTxData[i] = masterTxData[i] + 1;
+//		}
+//		HAL_SPI_Transmit_DMA(&hspi3, masterTxData, 8);
+//		HAL_SPI_Receive_DMA(&hspi2, slaveRxData, 8);
+//		HAL_Delay(1);				// It needs delay
+//	}
+//	if (htim == &htim3){
+//		for (uint8_t i = 0; i < 8; i++){
+//			slaveTxData[i] = slaveTxData[i] + 1;
+//		}
+//		HAL_SPI_Transmit_DMA(&hspi2, slaveTxData, 8);
+//		HAL_SPI_Receive_DMA(&hspi3, masterRxData, 8);
+//		HAL_Delay(1);				// It needs delay
+//	}
 }
+
+//void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) {
+//	if (hspi == &hspi2){
+//		memcpy(slaveRx, slaveRxData, 8);
+//		memset(slaveRxData, 0, 16);
+//		HAL_SPI_Receive_IT(&hspi2, slaveRxData, 8);
+//	}
+//
+//	if (hspi == &hspi3){
+//		memcpy(masterRx, masterRxData, 8);
+//		memset(masterRxData, 0, 16);
+//		HAL_SPI_Receive_IT(&hspi3, masterRxData, 8);
+//	}
+//}
 
 /* USER CODE END 4 */
 
