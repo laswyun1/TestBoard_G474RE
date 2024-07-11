@@ -54,16 +54,16 @@ void pMMG_ReadPROM(pMMG_Obj_t* pMMG_Obj) {
 		cursor += 2;
 	}
 
-	/* Byte swap on 16-bit integers */
-	cursor = promPtr;
-	for (address = 0; address < 8; address++) {
-		uint8_t* toSwap = cursor;
-		uint8_t secondByte = toSwap[0];
-		toSwap[0] = toSwap[1];
-		toSwap[1] = secondByte;
-
-		cursor += 2;
-	}
+//	/* Byte swap on 16-bit integers */
+//	cursor = promPtr;
+//	for (address = 0; address < 8; address++) {
+//		uint8_t* toSwap = cursor;
+//		uint8_t secondByte = toSwap[0];
+//		toSwap[0] = toSwap[1];
+//		toSwap[1] = secondByte;
+//
+//		cursor += 2;
+//	}
 
 	/* Set corresponding data */
 	pMMG_Obj->promData.reserved = (uint16_t)( ((uint16_t)promPtr[0] << 8) + (uint16_t)promPtr[1] );
