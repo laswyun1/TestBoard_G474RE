@@ -163,7 +163,6 @@ int main(void)
   spiTxCmd = 0xA0;
   for (uint8_t i = 0; i < 8; i++) {
 	  spiTxCmd = 0xA0 + (i << 1);
-	  uint8_t tx[2] = {spiTxCmd, spiTxCmd};
 	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
 	  state = HAL_SPI_Transmit(&hspi3, &spiTxCmd, 1, 10);
 	  state = HAL_SPI_Receive(&hspi3, &RxData[i*2], 2, 10);
