@@ -48,21 +48,18 @@
 /* USER CODE BEGIN PV */
 #define buffsize 	4
 
-uint8_t slaveTxData[buffsize] = {0};
-uint8_t slaveRxData[buffsize] = {0};
-uint8_t masterTxData[buffsize] = {0};
-uint8_t masterRxData[buffsize] = {0};
+static uint8_t slaveTxData[buffsize] = {0};
+static uint8_t slaveRxData[buffsize] = {0};
+static uint8_t masterTxData[buffsize] = {0};
+static uint8_t masterRxData[buffsize] = {0};
 
 
-uint8_t slaveRx[buffsize] = {0};
-uint8_t masterRx[buffsize] = {0};
+static uint8_t cmd = 0;
 
-uint8_t cmd = 0;
-
-uint8_t state = 0;
-
-uint8_t* slaveRegRx;
-uint8_t* masterRegRx;
+static uint8_t state = 0;
+static uint8_t dummyTx[4] = {111, 111, 111, 111};
+static uint8_t dummyRx[4] = {222, 222, 222, 222};
+static uint8_t masterTxData2[buffsize*2] = {0};
 
 /* USER CODE END PV */
 
@@ -114,7 +111,8 @@ int main(void)
 
 //  HAL_TIM_Base_Start_IT(&htim2);
 //  HAL_TIM_Base_Start_IT(&htim3);
-
+  HAL_SPI_Init(&hspi2);
+  HAL_SPI_Init(&hspi3);
   // For the initial miscommunication of SPI //
 //  for (uint8_t i = 0; i < 3; i++){
 //	  HAL_SPI_Transmit_DMA(&hspi3, masterTxData, 8);
@@ -129,6 +127,7 @@ int main(void)
 //  	  HAL_Delay(1);
 //  }
 
+//  state = HAL_SPI_TransmitReceive(&hspi3, &dummyTx, &dummyRx, 1, 1);
 
   /* USER CODE END 2 */
 
@@ -141,11 +140,21 @@ int main(void)
 		  for (uint8_t i = 0; i < buffsize; i++){
 			  masterTxData[i] = masterTxData[i] + 1;
 		  }
-		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+//		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
 		  state = HAL_SPI_Transmit(&hspi3, masterTxData, 4, 1);
 		  state = HAL_SPI_Receive(&hspi2, slaveRxData, 4, 1);
-//		  state = HAL_SPI_TransmitReceive(&hspi3, masterTxData, masterRxData, 8, 10);
-		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+
+
+		  for (uint8_t k = 0; k < 4; k++) {
+
+		  }
+//	        (* (uint8_t *)hspi->pRxBuffPtr) = *(__IO uint8_t *)&hspi->Instance->DR;
+//	        hspi->pRxBuffPtr += sizeof(uint8_t);
+//	        hspi->RxXferCount--;
+
+//		  state = HAL_SPI_TransmitReceive(&hspi3, masterTxData, dummyRx, 4, 0xFFFF);
+//		  state = HAL_SPI_TransmitReceive(&hspi2, dummyTx, slaveRxData, 4, 0xFFFF);
+//		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 		  cmd = 0;
 //		  HAL_Delay(10);	// You can remove delay
 	  }
@@ -155,11 +164,18 @@ int main(void)
 		  for (uint8_t i = 0; i < buffsize; i++){
 			  slaveTxData[i] = slaveTxData[i] + 1;
 		  }
-		  HAL_SPI_Transmit(&hspi2, slaveTxData, 4, 1);
-		  HAL_SPI_Receive(&hspi3, masterRxData, 4, 1);
-//		  state = HAL_SPI_TransmitReceive(&hspi2, slaveTxData, slaveRxData, 8, 10);
+		  state = HAL_SPI_Transmit(&hspi2, slaveTxData, 4, 1);
+		  state = HAL_SPI_Receive(&hspi3, masterRxData, 4, 1);
+//		  state = HAL_SPI_TransmitReceive(&hspi2, slaveTxData, dummyRx, 4, 0xFFFF);
+//		  state = HAL_SPI_TransmitReceive(&hspi3, dummyTx, masterRxData, 4, 0xFFFF);
 		  cmd = 0;
 //		  HAL_Delay(10);    // You can remove delay
+	  }
+	  if (cmd == 3) {
+		  state = HAL_SPI_Receive(&hspi2, &slaveRxData[0], 4, 1);
+	  }
+	  if (cmd == 4) {
+		  state = HAL_SPI_Receive(&hspi3, &masterRxData[0], 4, 1);
 	  }
     /* USER CODE END WHILE */
 
