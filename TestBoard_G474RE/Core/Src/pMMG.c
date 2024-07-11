@@ -24,7 +24,8 @@ pMMG_State_t pMMG_Init(pMMG_Obj_t* pMMG_Obj, SPI_HandleTypeDef* hspi, GPIO_TypeD
 	pMMG_EnableCS(pMMG_Obj);
 	SPITxData = RESET_CMD;
 	HAL_SPI_Transmit(pMMG_Obj->pMMG_hspi, &SPITxData, 1, 10);
-	HAL_Delay(3);
+//	HAL_Delay(3);
+	us_Delay(3000);
 	pMMG_DisableCS(pMMG_Obj);
 
 	pMMG_ReadPROM(pMMG_Obj);
@@ -93,19 +94,24 @@ void pMMG_ReadUncompValue(pMMG_Obj_t* pMMG_Obj) {
 	HAL_SPI_Transmit(pMMG_Obj->pMMG_hspi, &SPITxData, 1, 10);
 
 	if (pressureOSR == 0x00) {
-		HAL_Delay(1);
+//		HAL_Delay(1);
+		us_Delay(1000);
 	}
 	else if (pressureOSR == 0x02) {
-		HAL_Delay(2);
+//		HAL_Delay(2);
+		us_Delay(2000);
 	}
 	else if (pressureOSR == 0x04) {
-		HAL_Delay(3);
+//		HAL_Delay(3);
+		us_Delay(3000);
 	}
 	else if (pressureOSR == 0x06) {
-		HAL_Delay(5);
+//		HAL_Delay(5);
+		us_Delay(5000);
 	}
 	else {
-		HAL_Delay(10);
+//		HAL_Delay(10);
+		us_Delay(10000);
 	}
 
 	pMMG_DisableCS(pMMG_Obj);
@@ -134,19 +140,24 @@ void pMMG_ReadUncompValue(pMMG_Obj_t* pMMG_Obj) {
 	HAL_SPI_Transmit(pMMG_Obj->pMMG_hspi, &SPITxData, 1, 10);
 
 	if (temperatureOSR == 0x00) {
-		HAL_Delay(1);
+//		HAL_Delay(1);
+		us_Delay(1000);
 	}
 	else if (temperatureOSR == 0x02) {
-		HAL_Delay(2);
+//		HAL_Delay(2);
+		us_Delay(2000);
 	}
 	else if (temperatureOSR == 0x04) {
-		HAL_Delay(3);
+//		HAL_Delay(3);
+		us_Delay(3000);
 	}
 	else if (temperatureOSR == 0x06) {
-		HAL_Delay(5);
+//		HAL_Delay(5);
+		us_Delay(5000);
 	}
 	else {
-		HAL_Delay(10);
+//		HAL_Delay(10);
+		us_Delay(10000);
 	}
 
 	pMMG_DisableCS(pMMG_Obj);
@@ -223,4 +234,10 @@ void pMMG_DisableCS(pMMG_Obj_t* pMMG_Obj) {
 
 
 
-
+void us_Delay(uint32_t us_delay)
+{
+    uint32_t usStart = DWT->CYCCNT / 170;
+    while ( DWT->CYCCNT/170 - usStart < us_delay)
+    {
+    }
+}

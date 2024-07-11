@@ -94,6 +94,6 @@ void pMMG_Convert(pMMG_Obj_t* pMMG_Obj);
 void pMMG_Update(pMMG_Obj_t* pMMG_Obj);
 void pMMG_EnableCS(pMMG_Obj_t* pMMG_Obj);
 void pMMG_DisableCS(pMMG_Obj_t* pMMG_Obj);
-
+void us_Delay(uint32_t us_delay);
 
 #endif /* _PMMG_H_ */

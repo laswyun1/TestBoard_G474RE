@@ -48,6 +48,8 @@
 /* USER CODE BEGIN PV */
 pMMG_Obj_t pMMGObj;
 uint8_t state = 0;
+uint32_t start = 0;
+uint32_t codeTime = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -94,14 +96,28 @@ int main(void)
   MX_SPI3_Init();
   /* USER CODE BEGIN 2 */
 
+  CoreDebug->DEMCR &= ~CoreDebug_DEMCR_TRCENA_Msk;
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->CTRL &= ~DWT_CTRL_CYCCNTENA_Msk;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+  DWT->CYCCNT = 0;
+
+  /* Initialize pMMG */
   state = pMMG_Init(&pMMGObj, &hspi3, GPIOA, GPIO_PIN_4);
+
+  /* If you use Timer Interrupt */
+  HAL_TIM_Base_Start_IT(&htim3);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  pMMG_Update(&pMMGObj);
+	  /* Reading pMMG */
+//	  start = DWT->CYCCNT / 170;
+//	  pMMG_Update(&pMMGObj);
+//	  codeTime = DWT->CYCCNT / 170 - start;
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -156,7 +172,13 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+	if (htim == &htim3) {
+		start = DWT->CYCCNT / 170;
+		pMMG_Update(&pMMGObj);
+		codeTime = DWT->CYCCNT / 170 - start;
+	}
+}
 /* USER CODE END 4 */
 
 /**
