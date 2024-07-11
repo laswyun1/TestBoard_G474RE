@@ -19,20 +19,78 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "usart.h"
+#include "spi.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
+/* Oversampling ratio */
+typedef enum _pMMG_OSR_t {
+	OSR_256  = 0x00,
+	OSR_512  = 0x02,
+	OSR_1024 = 0x04,
+	OSR_2048 = 0x06,
+	OSR_4096 = 0x08
+} pMMG_OSR_t;
+
+
+/* System states */
+typedef enum _pMMG_State_t {
+	pMMG_STATE_OK,
+	pMMG_STATE_ERROR,
+} pMMG_State_t;
+
+
+/* PROM data structure */
+typedef struct _pMMG_PROMData_t {
+  uint16_t reserved;
+  uint16_t sens;
+  uint16_t off;
+  uint16_t tcs;
+  uint16_t tco;
+  uint16_t tref;
+  uint16_t tempsens;
+  uint16_t crc;
+} pMMG_PROMData_t;
+
+
+typedef struct _pMMG_UncompData_t {
+	uint32_t uncompPressure;
+	uint32_t uncompTemperature;
+} pMMG_UncompData_t;
+
+
+typedef struct _pMMG_Data_t {
+	int32_t pressure;
+	int32_t temperature;
+
+	double pressureKPa;
+	double temperatureC;
+} pMMG_Data_t;
+
+
+/* pMMG data structure */
+typedef struct _pMMG_Obj_t {
+	SPI_HandleTypeDef* pMMG_hspi;
+	GPIO_TypeDef* pMMG_CS_GPIO_Port;
+	uint16_t pMMG_CS_Pin;
+	pMMG_PROMData_t promData;
+	pMMG_UncompData_t uncompData;
+	pMMG_Data_t pMMGData;
+} pMMG_Obj_t;
+
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define RESET_CMD				0x1E
 
 /* USER CODE END PD */
 
@@ -44,7 +102,9 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+uint8_t spiTxCmd = 0;
+uint8_t RxData[32] = {0};
+uint8_t state = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -87,7 +147,30 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_LPUART1_UART_Init();
+  MX_SPI3_Init();
   /* USER CODE BEGIN 2 */
+  memset(RxData, 0 ,sizeof(RxData));
+
+  /* Init */
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+  spiTxCmd = RESET_CMD;
+  state = HAL_SPI_Transmit(&hspi3, &spiTxCmd, 1, 10);
+  HAL_Delay(3);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+
+
+  /* Read PROM */
+  spiTxCmd = 0xA0;
+  for (uint8_t i = 0; i < 8; i++) {
+	  spiTxCmd = 0xA0 + (i << 1);
+	  uint8_t tx[2] = {spiTxCmd, spiTxCmd};
+	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+	  state = HAL_SPI_Transmit(&hspi3, &spiTxCmd, 1, 10);
+	  state = HAL_SPI_Receive(&hspi3, &RxData[i*2], 2, 10);
+//	  state = HAL_SPI_TransmitReceive(&hspi3, tx, &RxData[i*2], 2, 10);
+
+	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+  }
 
   /* USER CODE END 2 */
 
