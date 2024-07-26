@@ -115,9 +115,9 @@ int main(void)
   while (1)
   {
 	  /* Reading pMMG */
-//	  start = DWT->CYCCNT / 170;
-//	  pMMG_Update(&pMMGObj);
-//	  codeTime = DWT->CYCCNT / 170 - start;
+	  start = DWT->CYCCNT / 170;
+	  pMMG_Update(&pMMGObj);
+	  codeTime = DWT->CYCCNT / 170 - start;
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -173,11 +173,11 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-	if (htim == &htim3) {
-		start = DWT->CYCCNT / 170;
-		pMMG_Update(&pMMGObj);
-		codeTime = DWT->CYCCNT / 170 - start;
-	}
+//	if (htim == &htim3) {
+//		start = DWT->CYCCNT / 170;
+//		pMMG_Update(&pMMGObj);
+//		codeTime = DWT->CYCCNT / 170 - start;
+//	}
 }
 /* USER CODE END 4 */
 
