@@ -46,8 +46,14 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-pMMG_Obj_t pMMGObj;
-uint8_t state = 0;
+pMMG_Obj_t pMMGObj1;
+pMMG_Obj_t pMMGObj2;
+pMMG_Obj_t pMMGObj3;
+
+uint8_t state1 = 0;
+uint8_t state2 = 0;
+uint8_t state3 = 0;
+
 uint32_t start = 0;
 uint32_t codeTime = 0;
 /* USER CODE END PV */
@@ -94,6 +100,8 @@ int main(void)
   MX_LPUART1_UART_Init();
   MX_TIM3_Init();
   MX_SPI3_Init();
+  MX_SPI1_Init();
+  MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
 
   CoreDebug->DEMCR &= ~CoreDebug_DEMCR_TRCENA_Msk;
@@ -103,7 +111,9 @@ int main(void)
   DWT->CYCCNT = 0;
 
   /* Initialize pMMG */
-  state = pMMG_Init(&pMMGObj, &hspi3, GPIOA, GPIO_PIN_4);
+  state1 = pMMG_Init(&pMMGObj1, &hspi1, GPIOA, GPIO_PIN_4);
+  state2 = pMMG_Init(&pMMGObj2, &hspi2, GPIOB, GPIO_PIN_12);
+  state3 = pMMG_Init(&pMMGObj3, &hspi3, GPIOB, GPIO_PIN_6);
 
   /* If you use Timer Interrupt */
   HAL_TIM_Base_Start_IT(&htim3);
@@ -115,9 +125,11 @@ int main(void)
   while (1)
   {
 	  /* Reading pMMG */
-//	  start = DWT->CYCCNT / 170;
-//	  pMMG_Update(&pMMGObj);
-//	  codeTime = DWT->CYCCNT / 170 - start;
+	  start = DWT->CYCCNT / 170;
+	  pMMG_Update(&pMMGObj1);
+	  pMMG_Update(&pMMGObj2);
+	  pMMG_Update(&pMMGObj3);
+	  codeTime = DWT->CYCCNT / 170 - start;
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -173,11 +185,11 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-	if (htim == &htim3) {
-		start = DWT->CYCCNT / 170;
-		pMMG_Update(&pMMGObj);
-		codeTime = DWT->CYCCNT / 170 - start;
-	}
+//	if (htim == &htim3) {
+//		start = DWT->CYCCNT / 170;
+//		pMMG_Update(&pMMGObj);
+//		codeTime = DWT->CYCCNT / 170 - start;
+//	}
 }
 /* USER CODE END 4 */
 
