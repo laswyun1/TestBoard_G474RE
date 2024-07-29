@@ -106,7 +106,7 @@ int main(void)
 
   /* Initialize pMMG */
   state1 = pMMG_Init(&pMMGObj1, &hspi3, GPIOA, GPIO_PIN_4);
-//  state2 = pMMG_Init(&pMMGObj2, &hspi3, GPIOB, GPIO_PIN_12);
+  state2 = pMMG_Init(&pMMGObj2, &hspi3, GPIOB, GPIO_PIN_12);
 
   /* If you use Timer Interrupt */
   HAL_TIM_Base_Start_IT(&htim3);
@@ -120,7 +120,7 @@ int main(void)
 	  /* Reading pMMG */
 	  start = DWT->CYCCNT / 170;
 	  pMMG_Update(&pMMGObj1);
-//	  pMMG_Update(&pMMGObj2);
+	  pMMG_Update(&pMMGObj2);
 	  codeTime = DWT->CYCCNT / 170 - start;
     /* USER CODE END WHILE */
 
