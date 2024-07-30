@@ -49,7 +49,10 @@
 pMMG_Obj_t pMMGObj;
 uint8_t state = 0;
 uint32_t start = 0;
-uint32_t codeTime = 0;
+uint32_t codeTime = 0;		// usec
+
+float totalCodeTime = 0;	// sec
+uint32_t errCnt = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -118,6 +121,11 @@ int main(void)
 	  start = DWT->CYCCNT / 170;
 	  pMMG_Update(&pMMGObj);
 	  codeTime = DWT->CYCCNT / 170 - start;
+
+	  totalCodeTime += (float)codeTime / 1000000;
+	  if (pMMGObj.pMMGData.pressureKPa > 120 || pMMGObj.pMMGData.pressureKPa < 99){
+		  errCnt++;
+	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
