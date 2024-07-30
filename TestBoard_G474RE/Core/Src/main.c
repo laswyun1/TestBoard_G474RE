@@ -136,9 +136,9 @@ int main(void)
   state5 = pMMG_Init(&pMMGObj5, &hspi2, GPIOA, GPIO_PIN_11);
   state6 = pMMG_Init(&pMMGObj6, &hspi3, GPIOB, GPIO_PIN_12);
 
-  state7 = pMMG_Init(&pMMGObj7, &hspi1, GPIOB, GPIO_PIN_11);
-  state8 = pMMG_Init(&pMMGObj8, &hspi2, GPIOB, GPIO_PIN_2);
-  state9 = pMMG_Init(&pMMGObj9, &hspi3, GPIOB, GPIO_PIN_1);
+//  state7 = pMMG_Init(&pMMGObj7, &hspi1, GPIOB, GPIO_PIN_11);
+//  state8 = pMMG_Init(&pMMGObj8, &hspi2, GPIOB, GPIO_PIN_2);
+//  state9 = pMMG_Init(&pMMGObj9, &hspi3, GPIOB, GPIO_PIN_1);
 
   /* If you use Timer Interrupt */
   HAL_TIM_Base_Start_IT(&htim3);
@@ -163,7 +163,7 @@ int main(void)
 	  /* (3) 9-pMMG measurement by 3-phases ((2ms + 3*70us)*3) */
 	  pMMG_Update_multiple(&pMMGObj1, &pMMGObj2, &pMMGObj3);
 	  pMMG_Update_multiple(&pMMGObj4, &pMMGObj5, &pMMGObj6);
-	  pMMG_Update_multiple(&pMMGObj7, &pMMGObj8, &pMMGObj9);
+//	  pMMG_Update_multiple(&pMMGObj7, &pMMGObj8, &pMMGObj9);
 
 	  codeTime = DWT->CYCCNT / 170 - start;
     /* USER CODE END WHILE */
