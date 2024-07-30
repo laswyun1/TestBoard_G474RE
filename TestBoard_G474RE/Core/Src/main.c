@@ -46,13 +46,30 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+/* SPI1 port */
 pMMG_Obj_t pMMGObj1;
 pMMG_Obj_t pMMGObj2;
 pMMG_Obj_t pMMGObj3;
-
 uint8_t state1 = 0;
 uint8_t state2 = 0;
 uint8_t state3 = 0;
+
+/* SPI2 port */
+pMMG_Obj_t pMMGObj4;
+pMMG_Obj_t pMMGObj5;
+pMMG_Obj_t pMMGObj6;
+uint8_t state4 = 0;
+uint8_t state5 = 0;
+uint8_t state6 = 0;
+
+/* SPI3 port */
+pMMG_Obj_t pMMGObj7;
+pMMG_Obj_t pMMGObj8;
+pMMG_Obj_t pMMGObj9;
+uint8_t state7 = 0;
+uint8_t state8 = 0;
+uint8_t state9 = 0;
+
 
 uint32_t start = 0;
 uint32_t codeTime = 0;
@@ -111,9 +128,17 @@ int main(void)
   DWT->CYCCNT = 0;
 
   /* Initialize pMMG */
-  state1 = pMMG_Init(&pMMGObj1, &hspi1, GPIOA, GPIO_PIN_4);
-  state2 = pMMG_Init(&pMMGObj2, &hspi2, GPIOB, GPIO_PIN_12);
-  state3 = pMMG_Init(&pMMGObj3, &hspi3, GPIOB, GPIO_PIN_6);
+  state1 = pMMG_Init(&pMMGObj1, &hspi1, GPIOC, GPIO_PIN_8);
+  state2 = pMMG_Init(&pMMGObj2, &hspi2, GPIOC, GPIO_PIN_6);
+  state3 = pMMG_Init(&pMMGObj3, &hspi3, GPIOC, GPIO_PIN_5);
+
+  state4 = pMMG_Init(&pMMGObj4, &hspi1, GPIOA, GPIO_PIN_12);
+  state5 = pMMG_Init(&pMMGObj5, &hspi2, GPIOA, GPIO_PIN_11);
+  state6 = pMMG_Init(&pMMGObj6, &hspi3, GPIOB, GPIO_PIN_12);
+
+  state7 = pMMG_Init(&pMMGObj7, &hspi1, GPIOB, GPIO_PIN_11);
+  state8 = pMMG_Init(&pMMGObj8, &hspi2, GPIOB, GPIO_PIN_2);
+  state9 = pMMG_Init(&pMMGObj9, &hspi3, GPIOB, GPIO_PIN_1);
 
   /* If you use Timer Interrupt */
   HAL_TIM_Base_Start_IT(&htim3);
@@ -132,8 +157,13 @@ int main(void)
 //	  pMMG_Update(&pMMGObj2);
 //	  pMMG_Update(&pMMGObj3);
 
-	  /* (2) 3 pMMG at once(2ms + 3*70us) */
+	  /* (2) 3-pMMG at once (2ms + 3*70us) */
+//	  pMMG_Update_multiple(&pMMGObj1, &pMMGObj2, &pMMGObj3);
+
+	  /* (3) 9-pMMG measurement by 3-phases ((2ms + 3*70us)*3) */
 	  pMMG_Update_multiple(&pMMGObj1, &pMMGObj2, &pMMGObj3);
+	  pMMG_Update_multiple(&pMMGObj4, &pMMGObj5, &pMMGObj6);
+	  pMMG_Update_multiple(&pMMGObj7, &pMMGObj8, &pMMGObj9);
 
 	  codeTime = DWT->CYCCNT / 170 - start;
     /* USER CODE END WHILE */
