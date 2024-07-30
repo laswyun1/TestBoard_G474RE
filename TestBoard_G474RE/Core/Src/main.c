@@ -126,9 +126,15 @@ int main(void)
   {
 	  /* Reading pMMG */
 	  start = DWT->CYCCNT / 170;
-	  pMMG_Update(&pMMGObj1);
-	  pMMG_Update(&pMMGObj2);
-	  pMMG_Update(&pMMGObj3);
+
+	  /* (1) One pMMG at once ((2ms + 70us) + (2ms + 70us) + (2ms + 70us)) */
+//	  pMMG_Update(&pMMGObj1);
+//	  pMMG_Update(&pMMGObj2);
+//	  pMMG_Update(&pMMGObj3);
+
+	  /* (2) 3 pMMG at once(2ms + 3*70us) */
+	  pMMG_Update_multiple(&pMMGObj1, &pMMGObj2, &pMMGObj3);
+
 	  codeTime = DWT->CYCCNT / 170 - start;
     /* USER CODE END WHILE */
 

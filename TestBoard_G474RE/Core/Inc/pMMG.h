@@ -46,6 +46,9 @@ typedef enum _pMMG_OSR_t {
 typedef enum _pMMG_State_t {
 	pMMG_STATE_OK,
 	pMMG_STATE_ERROR,
+	pMMG_STATE_ERROR_1,
+	pMMG_STATE_ERROR_2,
+	pMMG_STATE_ERROR_3
 } pMMG_State_t;
 
 
@@ -95,5 +98,8 @@ void pMMG_Update(pMMG_Obj_t* pMMG_Obj);
 void pMMG_EnableCS(pMMG_Obj_t* pMMG_Obj);
 void pMMG_DisableCS(pMMG_Obj_t* pMMG_Obj);
 void us_Delay(uint32_t us_delay);
+
+void pMMG_ReadUncompValue_multiple(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2, pMMG_Obj_t* pMMG_Obj3);
+void pMMG_Update_multiple(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2, pMMG_Obj_t* pMMG_Obj3);
 
 #endif /* _PMMG_H_ */

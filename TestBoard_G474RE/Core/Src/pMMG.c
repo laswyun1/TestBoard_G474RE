@@ -241,3 +241,230 @@ void us_Delay(uint32_t us_delay)
     {
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+/* -----------------------------------------------------------------------  Multiple pMMG in one SPI port version  ----------------------------------------------------------------------------------- */
+
+//pMMG_State_t pMMG_Init_multiple(pMMG_Obj_t* pMMG_Obj1, SPI_HandleTypeDef* hspi1, GPIO_TypeDef* GPIOx1, uint16_t GPIO_Pin1, \
+//								pMMG_Obj_t* pMMG_Obj2, SPI_HandleTypeDef* hspi2, GPIO_TypeDef* GPIOx2, uint16_t GPIO_Pin2, \
+//								pMMG_Obj_t* pMMG_Obj3, SPI_HandleTypeDef* hspi3, GPIO_TypeDef* GPIOx3, uint16_t GPIO_Pin3) {
+//
+//	pMMG_Obj1->pMMG_hspi = hspi1;
+//	pMMG_Obj1->pMMG_CS_GPIO_Port = GPIOx1;
+//	pMMG_Obj1->pMMG_CS_Pin = GPIO_Pin1;
+//
+//	pMMG_Obj2->pMMG_hspi = hspi2;
+//	pMMG_Obj2->pMMG_CS_GPIO_Port = GPIOx2;
+//	pMMG_Obj2->pMMG_CS_Pin = GPIO_Pin2;
+//
+//	pMMG_Obj3->pMMG_hspi = hspi3;
+//	pMMG_Obj3->pMMG_CS_GPIO_Port = GPIOx3;
+//	pMMG_Obj3->pMMG_CS_Pin = GPIO_Pin3;
+//
+//	pMMG_EnableCS(pMMG_Obj1);
+//	pMMG_EnableCS(pMMG_Obj2);
+//	pMMG_EnableCS(pMMG_Obj3);
+//	SPITxData = RESET_CMD;
+//	HAL_SPI_Transmit(pMMG_Obj1->pMMG_hspi, &SPITxData, 1, 10);
+//	HAL_SPI_Transmit(pMMG_Obj2->pMMG_hspi, &SPITxData, 1, 10);
+//	HAL_SPI_Transmit(pMMG_Obj3->pMMG_hspi, &SPITxData, 1, 10);
+////	HAL_Delay(3);
+//	us_Delay(3000);
+//	pMMG_DisableCS(pMMG_Obj1);
+//	pMMG_DisableCS(pMMG_Obj2);
+//	pMMG_DisableCS(pMMG_Obj3);
+//
+//	pMMG_ReadPROM(pMMG_Obj1);
+//	pMMG_ReadPROM(pMMG_Obj2);
+//	pMMG_ReadPROM(pMMG_Obj3);
+//
+//
+//	if (pMMG_Obj1->promData.reserved == 0x00 || pMMG_Obj1->promData.reserved == 0xFF) {
+//		return pMMG_STATE_ERROR_1;
+//	}
+//	if (pMMG_Obj2->promData.reserved == 0x00 || pMMG_Obj2->promData.reserved == 0xFF) {
+//		return pMMG_STATE_ERROR_2;
+//	}
+//	if (pMMG_Obj3->promData.reserved == 0x00 || pMMG_Obj3->promData.reserved == 0xFF) {
+//		return pMMG_STATE_ERROR_3;
+//	}
+//	else {
+//		return pMMG_STATE_OK;
+//	}
+//}
+
+
+
+
+
+void pMMG_ReadUncompValue_multiple(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2, pMMG_Obj_t* pMMG_Obj3) {
+
+	/* Data buffer for sensor replies */
+	uint8_t rxData1[3];
+	uint8_t rxData2[3];
+	uint8_t rxData3[3];
+
+	/* ---------------------------------------------------------------------------- */
+
+	/* (1) Pressure part */
+	pMMG_EnableCS(pMMG_Obj1);
+	pMMG_EnableCS(pMMG_Obj2);
+	pMMG_EnableCS(pMMG_Obj3);
+
+	/* Setting the OSR */
+	SPITxData = CONVERT_D1_OSR_DEFAULT_CMD | pressureOSR;
+	HAL_SPI_Transmit(pMMG_Obj1->pMMG_hspi, &SPITxData, 1, 10);
+	HAL_SPI_Transmit(pMMG_Obj2->pMMG_hspi, &SPITxData, 1, 10);
+	HAL_SPI_Transmit(pMMG_Obj3->pMMG_hspi, &SPITxData, 1, 10);
+
+	if (pressureOSR == 0x00) {
+//		HAL_Delay(1);
+		us_Delay(1000);
+//		us_Delay(600);
+	}
+	else if (pressureOSR == 0x02) {
+//		HAL_Delay(2);
+		us_Delay(2000);
+	}
+	else if (pressureOSR == 0x04) {
+//		HAL_Delay(3);
+		us_Delay(3000);
+	}
+	else if (pressureOSR == 0x06) {
+//		HAL_Delay(5);
+		us_Delay(5000);
+	}
+	else {
+//		HAL_Delay(10);
+		us_Delay(10000);
+	}
+
+	pMMG_DisableCS(pMMG_Obj1);
+	pMMG_DisableCS(pMMG_Obj2);
+	pMMG_DisableCS(pMMG_Obj3);
+
+	/* Reading 24-bit ADC value */
+	pMMG_EnableCS(pMMG_Obj1);
+	pMMG_EnableCS(pMMG_Obj2);
+	pMMG_EnableCS(pMMG_Obj3);
+
+	SPITxData = READ_ADC_CMD;
+	HAL_SPI_Transmit(pMMG_Obj1->pMMG_hspi, &SPITxData, 1, 10);
+	HAL_SPI_Receive(pMMG_Obj1->pMMG_hspi, rxData1, 3, 10);
+	HAL_SPI_Transmit(pMMG_Obj2->pMMG_hspi, &SPITxData, 1, 10);
+	HAL_SPI_Receive(pMMG_Obj2->pMMG_hspi, rxData2, 3, 10);
+	HAL_SPI_Transmit(pMMG_Obj3->pMMG_hspi, &SPITxData, 1, 10);
+	HAL_SPI_Receive(pMMG_Obj3->pMMG_hspi, rxData3, 3, 10);
+
+	pMMG_DisableCS(pMMG_Obj1);
+	pMMG_DisableCS(pMMG_Obj2);
+	pMMG_DisableCS(pMMG_Obj3);
+
+	/* Convert the 24-bit raw data into a 32-bit useful integer data */
+	pMMG_Obj1->uncompData.uncompPressure = ( ((uint32_t) rxData1[0] << 16) | ((uint32_t) rxData1[1] << 8) | ((uint32_t) rxData1[2]) );
+	pMMG_Obj2->uncompData.uncompPressure = ( ((uint32_t) rxData2[0] << 16) | ((uint32_t) rxData2[1] << 8) | ((uint32_t) rxData2[2]) );
+	pMMG_Obj3->uncompData.uncompPressure = ( ((uint32_t) rxData3[0] << 16) | ((uint32_t) rxData3[1] << 8) | ((uint32_t) rxData3[2]) );
+	/* ---------------------------------------------------------------------------- */
+
+
+	/* (2) Temperature part */
+	pMMG_EnableCS(pMMG_Obj1);
+	pMMG_EnableCS(pMMG_Obj2);
+	pMMG_EnableCS(pMMG_Obj3);
+
+	/* Setting the OSR */
+	SPITxData = CONVERT_D2_OSR_DEFAULT_CMD | temperatureOSR;
+	HAL_SPI_Transmit(pMMG_Obj1->pMMG_hspi, &SPITxData, 1, 10);
+	HAL_SPI_Transmit(pMMG_Obj2->pMMG_hspi, &SPITxData, 1, 10);
+	HAL_SPI_Transmit(pMMG_Obj3->pMMG_hspi, &SPITxData, 1, 10);
+
+	if (temperatureOSR == 0x00) {
+//		HAL_Delay(1);
+		us_Delay(1000);
+//		us_Delay(600);
+	}
+	else if (temperatureOSR == 0x02) {
+//		HAL_Delay(2);
+		us_Delay(2000);
+	}
+	else if (temperatureOSR == 0x04) {
+//		HAL_Delay(3);
+		us_Delay(3000);
+	}
+	else if (temperatureOSR == 0x06) {
+//		HAL_Delay(5);
+		us_Delay(5000);
+	}
+	else {
+//		HAL_Delay(10);
+		us_Delay(10000);
+	}
+
+	pMMG_DisableCS(pMMG_Obj1);
+	pMMG_DisableCS(pMMG_Obj2);
+	pMMG_DisableCS(pMMG_Obj3);
+
+	/* Reading 24-bit ADC value */
+	pMMG_EnableCS(pMMG_Obj1);
+	pMMG_EnableCS(pMMG_Obj2);
+	pMMG_EnableCS(pMMG_Obj3);
+
+	SPITxData = READ_ADC_CMD;
+	HAL_SPI_Transmit(pMMG_Obj1->pMMG_hspi, &SPITxData, 1, 10);
+	HAL_SPI_Receive(pMMG_Obj1->pMMG_hspi, rxData1, 3, 10);
+	HAL_SPI_Transmit(pMMG_Obj2->pMMG_hspi, &SPITxData, 1, 10);
+	HAL_SPI_Receive(pMMG_Obj2->pMMG_hspi, rxData2, 3, 10);
+	HAL_SPI_Transmit(pMMG_Obj3->pMMG_hspi, &SPITxData, 1, 10);
+	HAL_SPI_Receive(pMMG_Obj3->pMMG_hspi, rxData3, 3, 10);
+
+	pMMG_DisableCS(pMMG_Obj1);
+	pMMG_DisableCS(pMMG_Obj2);
+	pMMG_DisableCS(pMMG_Obj3);
+
+
+	/* Convert the 24-bit raw data into a 32-bit useful integer data */
+	pMMG_Obj1->uncompData.uncompTemperature = ( ((uint32_t) rxData1[0] << 16) | ((uint32_t) rxData1[1] << 8) | ((uint32_t) rxData1[2]) );
+	pMMG_Obj2->uncompData.uncompTemperature = ( ((uint32_t) rxData2[0] << 16) | ((uint32_t) rxData2[1] << 8) | ((uint32_t) rxData2[2]) );
+	pMMG_Obj3->uncompData.uncompTemperature = ( ((uint32_t) rxData3[0] << 16) | ((uint32_t) rxData3[1] << 8) | ((uint32_t) rxData3[2]) );
+}
+
+
+
+
+void pMMG_Update_multiple(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2, pMMG_Obj_t* pMMG_Obj3) {
+	pMMG_ReadUncompValue_multiple(pMMG_Obj1, pMMG_Obj2, pMMG_Obj3);
+	pMMG_Convert(pMMG_Obj1);
+	pMMG_Convert(pMMG_Obj2);
+	pMMG_Convert(pMMG_Obj3);
+
+	pMMG_Obj1->pMMGData.pressureKPa = ( (double)(pMMG_Obj1->pMMGData.pressure) / 1000.0 );
+	pMMG_Obj1->pMMGData.temperatureC = ( (double)(pMMG_Obj1->pMMGData.temperature) / 100.0 );
+
+	pMMG_Obj2->pMMGData.pressureKPa = ( (double)(pMMG_Obj2->pMMGData.pressure) / 1000.0 );
+	pMMG_Obj2->pMMGData.temperatureC = ( (double)(pMMG_Obj2->pMMGData.temperature) / 100.0 );
+
+	pMMG_Obj3->pMMGData.pressureKPa = ( (double)(pMMG_Obj3->pMMGData.pressure) / 1000.0 );
+	pMMG_Obj3->pMMGData.temperatureC = ( (double)(pMMG_Obj3->pMMGData.temperature) / 100.0 );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
