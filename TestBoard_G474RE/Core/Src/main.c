@@ -48,8 +48,8 @@
 /* USER CODE BEGIN PV */
 pMMG_Obj_t pMMGObj;
 uint8_t state = 0;
-uint32_t start = 0;
-uint32_t codeTime = 0;		// usec
+float start = 0;
+float codeTime = 0;		// usec
 
 float totalCodeTime = 0;	// sec
 uint32_t errCnt = 0;
@@ -118,6 +118,7 @@ int main(void)
   while (1)
   {
 	  /* Reading pMMG */
+	  DWT->CYCCNT = 0;
 	  start = DWT->CYCCNT / 170;
 	  pMMG_Update(&pMMGObj);
 	  codeTime = DWT->CYCCNT / 170 - start;

@@ -95,8 +95,8 @@ void pMMG_ReadUncompValue(pMMG_Obj_t* pMMG_Obj) {
 
 	if (pressureOSR == 0x00) {			// 0.54ms
 //		HAL_Delay(1);
-		us_Delay(1000);
-//		us_Delay(600);
+//		us_Delay(1000);
+		us_Delay(600);
 	}
 	else if (pressureOSR == 0x02) {		// 1.06ms
 //		HAL_Delay(2);
@@ -142,8 +142,8 @@ void pMMG_ReadUncompValue(pMMG_Obj_t* pMMG_Obj) {
 
 	if (temperatureOSR == 0x00) {			// 0.54ms
 //		HAL_Delay(1);
-		us_Delay(1000);
-//		us_Delay(600);
+//		us_Delay(1000);
+		us_Delay(600);
 	}
 	else if (temperatureOSR == 0x02) {		// 1.06ms
 //		HAL_Delay(2);
