@@ -123,7 +123,7 @@ int main(void)
 	  codeTime = DWT->CYCCNT / 170 - start;
 
 	  totalCodeTime += (float)codeTime / 1000000;
-	  if (pMMGObj.pMMGData.pressureKPa > 120 || pMMGObj.pMMGData.pressureKPa < 99){
+	  if (pMMGObj.pMMGData.pressureKPa > 140 || pMMGObj.pMMGData.pressureKPa < 90){
 		  errCnt++;
 	  }
     /* USER CODE END WHILE */
