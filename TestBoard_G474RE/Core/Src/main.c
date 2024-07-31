@@ -54,8 +54,11 @@ uint8_t state1 = 0;
 uint8_t state2 = 0;
 uint8_t state3 = 0;
 
-uint32_t start = 0;
-uint32_t codeTime = 0;
+float start = 0;
+float codeTime = 0;
+float totalCodeTime = 0;
+uint32_t errCnt = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -111,9 +114,9 @@ int main(void)
   DWT->CYCCNT = 0;
 
   /* Initialize pMMG */
-  state1 = pMMG_Init(&pMMGObj1, &hspi1, GPIOA, GPIO_PIN_4);
-  state2 = pMMG_Init(&pMMGObj2, &hspi2, GPIOB, GPIO_PIN_12);
-  state3 = pMMG_Init(&pMMGObj3, &hspi3, GPIOB, GPIO_PIN_6);
+  state1 = pMMG_Init(&pMMGObj1, &hspi1, GPIOC, GPIO_PIN_8);
+  state2 = pMMG_Init(&pMMGObj2, &hspi2, GPIOA, GPIO_PIN_12);
+  state3 = pMMG_Init(&pMMGObj3, &hspi3, GPIOB, GPIO_PIN_2);
 
   /* If you use Timer Interrupt */
   HAL_TIM_Base_Start_IT(&htim3);
@@ -125,6 +128,7 @@ int main(void)
   while (1)
   {
 	  /* Reading pMMG */
+	  DWT->CYCCNT = 0;
 	  start = DWT->CYCCNT / 170;
 
 	  /* (1) One pMMG at once ((2ms + 70us) + (2ms + 70us) + (2ms + 70us)) */
@@ -136,6 +140,18 @@ int main(void)
 	  pMMG_Update_multiple(&pMMGObj1, &pMMGObj2, &pMMGObj3);
 
 	  codeTime = DWT->CYCCNT / 170 - start;
+
+	  totalCodeTime += (float)codeTime / 1000000;
+
+	  if (pMMGObj1.pMMGData.pressureKPa > 150 || pMMGObj1.pMMGData.pressureKPa < 70) {
+		  errCnt++;
+	  }
+	  if (pMMGObj2.pMMGData.pressureKPa > 150 || pMMGObj2.pMMGData.pressureKPa < 70) {
+		  errCnt++;
+	  }
+	  if (pMMGObj3.pMMGData.pressureKPa > 150 || pMMGObj3.pMMGData.pressureKPa < 70) {
+		  errCnt++;
+	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
