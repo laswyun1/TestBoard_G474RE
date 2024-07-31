@@ -238,8 +238,8 @@ void pMMG_DisableCS(pMMG_Obj_t* pMMG_Obj) {
 
 void us_Delay(uint32_t us_delay)
 {
-    uint32_t usStart = DWT->CYCCNT / 170;
-    while ( DWT->CYCCNT/170 - usStart < us_delay)
+    float usStart = (float)DWT->CYCCNT / 170;
+    while ( (float)DWT->CYCCNT/170 - usStart < (float)us_delay )
     {
     }
 }
