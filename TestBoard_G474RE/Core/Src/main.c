@@ -37,7 +37,7 @@
 /* USER CODE BEGIN PD */
 
 // Select testing CS_PIN //
-#define CS_SEL	 	1
+#define CS_SEL	 	8
 ///////////////////////////
 
 
