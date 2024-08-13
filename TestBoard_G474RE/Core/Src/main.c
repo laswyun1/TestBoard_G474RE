@@ -36,6 +36,11 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+// Select testing CS_PIN //
+#define CS_SEL	 	1
+///////////////////////////
+
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -97,6 +102,8 @@ int main(void)
   MX_LPUART1_UART_Init();
   MX_TIM3_Init();
   MX_SPI3_Init();
+  MX_SPI1_Init();
+  MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
 
   CoreDebug->DEMCR &= ~CoreDebug_DEMCR_TRCENA_Msk;
@@ -106,10 +113,38 @@ int main(void)
   DWT->CYCCNT = 0;
 
   /* Initialize pMMG */
-  state = pMMG_Init(&pMMGObj, &hspi3, GPIOA, GPIO_PIN_4);
+  switch (CS_SEL) {
+  	  case (1):
+	      state = pMMG_Init(&pMMGObj, &hspi1, GPIOC, GPIO_PIN_8);
+  	      break;
+  	  case (2):
+	      state = pMMG_Init(&pMMGObj, &hspi1, GPIOC, GPIO_PIN_6);
+	      break;
+  	  case (3):
+	      state = pMMG_Init(&pMMGObj, &hspi1, GPIOC, GPIO_PIN_5);
+	      break;
+  	  case (4):
+	      state = pMMG_Init(&pMMGObj, &hspi2, GPIOA, GPIO_PIN_12);
+  	  	  break;
+  	  case (5):
+	      state = pMMG_Init(&pMMGObj, &hspi2, GPIOA, GPIO_PIN_11);
+  	  	  break;
+  	  case (6):
+	      state = pMMG_Init(&pMMGObj, &hspi2, GPIOB, GPIO_PIN_12);
+  	  	  break;
+  	  case (7):
+	      state = pMMG_Init(&pMMGObj, &hspi3, GPIOB, GPIO_PIN_11);
+  	  	  break;
+  	  case (8):
+	      state = pMMG_Init(&pMMGObj, &hspi3, GPIOB, GPIO_PIN_2);
+  	  	  break;
+  	  default:
+  		  break;
+  }
+
 
   /* If you use Timer Interrupt */
-  HAL_TIM_Base_Start_IT(&htim3);
+//  HAL_TIM_Base_Start_IT(&htim3);
 
   /* USER CODE END 2 */
 
