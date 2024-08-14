@@ -93,24 +93,24 @@ void pMMG_ReadUncompValue(pMMG_Obj_t* pMMG_Obj) {
 	SPITxData = CONVERT_D1_OSR_DEFAULT_CMD | pressureOSR;
 	HAL_SPI_Transmit(pMMG_Obj->pMMG_hspi, &SPITxData, 1, 10);
 
-	if (pressureOSR == 0x00) {
+	if (pressureOSR == 0x00) {				// 0.54ms
 //		HAL_Delay(1);
 //		us_Delay(1000);
 		us_Delay(610);
 	}
-	else if (pressureOSR == 0x02) {
+	else if (pressureOSR == 0x02) {			// 1.06ms
 //		HAL_Delay(2);
 		us_Delay(2000);
 	}
-	else if (pressureOSR == 0x04) {
+	else if (pressureOSR == 0x04) {			// 2.08ms
 //		HAL_Delay(3);
 		us_Delay(3000);
 	}
-	else if (pressureOSR == 0x06) {
+	else if (pressureOSR == 0x06) {			// 4.13ms
 //		HAL_Delay(5);
 		us_Delay(5000);
 	}
-	else {
+	else {									// 8.22ms
 //		HAL_Delay(10);
 		us_Delay(10000);
 	}
@@ -140,24 +140,24 @@ void pMMG_ReadUncompValue(pMMG_Obj_t* pMMG_Obj) {
 	SPITxData = CONVERT_D2_OSR_DEFAULT_CMD | temperatureOSR;
 	HAL_SPI_Transmit(pMMG_Obj->pMMG_hspi, &SPITxData, 1, 10);
 
-	if (temperatureOSR == 0x00) {
+	if (temperatureOSR == 0x00) {			// 0.54ms
 //		HAL_Delay(1);
 //		us_Delay(1000);
 		us_Delay(610);
 	}
-	else if (temperatureOSR == 0x02) {
+	else if (temperatureOSR == 0x02) {		// 1.06ms
 //		HAL_Delay(2);
 		us_Delay(2000);
 	}
-	else if (temperatureOSR == 0x04) {
+	else if (temperatureOSR == 0x04) {		// 2.08ms
 //		HAL_Delay(3);
 		us_Delay(3000);
 	}
-	else if (temperatureOSR == 0x06) {
+	else if (temperatureOSR == 0x06) {		// 4.13ms
 //		HAL_Delay(5);
 		us_Delay(5000);
 	}
-	else {
+	else {									// 8.22ms
 //		HAL_Delay(10);
 		us_Delay(10000);
 	}
@@ -238,8 +238,8 @@ void pMMG_DisableCS(pMMG_Obj_t* pMMG_Obj) {
 
 void us_Delay(uint32_t us_delay)
 {
-    uint32_t usStart = DWT->CYCCNT / 170;
-    while ( DWT->CYCCNT/170 - usStart < us_delay)
+    float usStart = (float)DWT->CYCCNT / 170;
+    while ( (float)DWT->CYCCNT/170 - usStart < (float)us_delay)
     {
     }
 }
@@ -255,58 +255,6 @@ void us_Delay(uint32_t us_delay)
 
 
 /* -----------------------------------------------------------------------  Multiple pMMG in one SPI port version  ----------------------------------------------------------------------------------- */
-
-//pMMG_State_t pMMG_Init_multiple(pMMG_Obj_t* pMMG_Obj1, SPI_HandleTypeDef* hspi1, GPIO_TypeDef* GPIOx1, uint16_t GPIO_Pin1, \
-//								pMMG_Obj_t* pMMG_Obj2, SPI_HandleTypeDef* hspi2, GPIO_TypeDef* GPIOx2, uint16_t GPIO_Pin2, \
-//								pMMG_Obj_t* pMMG_Obj3, SPI_HandleTypeDef* hspi3, GPIO_TypeDef* GPIOx3, uint16_t GPIO_Pin3) {
-//
-//	pMMG_Obj1->pMMG_hspi = hspi1;
-//	pMMG_Obj1->pMMG_CS_GPIO_Port = GPIOx1;
-//	pMMG_Obj1->pMMG_CS_Pin = GPIO_Pin1;
-//
-//	pMMG_Obj2->pMMG_hspi = hspi2;
-//	pMMG_Obj2->pMMG_CS_GPIO_Port = GPIOx2;
-//	pMMG_Obj2->pMMG_CS_Pin = GPIO_Pin2;
-//
-//	pMMG_Obj3->pMMG_hspi = hspi3;
-//	pMMG_Obj3->pMMG_CS_GPIO_Port = GPIOx3;
-//	pMMG_Obj3->pMMG_CS_Pin = GPIO_Pin3;
-//
-//	pMMG_EnableCS(pMMG_Obj1);
-//	pMMG_EnableCS(pMMG_Obj2);
-//	pMMG_EnableCS(pMMG_Obj3);
-//	SPITxData = RESET_CMD;
-//	HAL_SPI_Transmit(pMMG_Obj1->pMMG_hspi, &SPITxData, 1, 10);
-//	HAL_SPI_Transmit(pMMG_Obj2->pMMG_hspi, &SPITxData, 1, 10);
-//	HAL_SPI_Transmit(pMMG_Obj3->pMMG_hspi, &SPITxData, 1, 10);
-////	HAL_Delay(3);
-//	us_Delay(3000);
-//	pMMG_DisableCS(pMMG_Obj1);
-//	pMMG_DisableCS(pMMG_Obj2);
-//	pMMG_DisableCS(pMMG_Obj3);
-//
-//	pMMG_ReadPROM(pMMG_Obj1);
-//	pMMG_ReadPROM(pMMG_Obj2);
-//	pMMG_ReadPROM(pMMG_Obj3);
-//
-//
-//	if (pMMG_Obj1->promData.reserved == 0x00 || pMMG_Obj1->promData.reserved == 0xFF) {
-//		return pMMG_STATE_ERROR_1;
-//	}
-//	if (pMMG_Obj2->promData.reserved == 0x00 || pMMG_Obj2->promData.reserved == 0xFF) {
-//		return pMMG_STATE_ERROR_2;
-//	}
-//	if (pMMG_Obj3->promData.reserved == 0x00 || pMMG_Obj3->promData.reserved == 0xFF) {
-//		return pMMG_STATE_ERROR_3;
-//	}
-//	else {
-//		return pMMG_STATE_OK;
-//	}
-//}
-
-
-
-
 
 void pMMG_ReadUncompValue_multiple_3(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2, pMMG_Obj_t* pMMG_Obj3) {
 
@@ -328,24 +276,24 @@ void pMMG_ReadUncompValue_multiple_3(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj
 	HAL_SPI_Transmit(pMMG_Obj2->pMMG_hspi, &SPITxData, 1, 10);
 	HAL_SPI_Transmit(pMMG_Obj3->pMMG_hspi, &SPITxData, 1, 10);
 
-	if (pressureOSR == 0x00) {
+	if (pressureOSR == 0x00) {				// 0.54ms
 //		HAL_Delay(1);
 //		us_Delay(1000);
 		us_Delay(610);
 	}
-	else if (pressureOSR == 0x02) {
+	else if (pressureOSR == 0x02) {			// 1.06ms
 //		HAL_Delay(2);
 		us_Delay(2000);
 	}
-	else if (pressureOSR == 0x04) {
+	else if (pressureOSR == 0x04) {			// 2.08ms
 //		HAL_Delay(3);
 		us_Delay(3000);
 	}
-	else if (pressureOSR == 0x06) {
+	else if (pressureOSR == 0x06) {			// 4.13ms
 //		HAL_Delay(5);
 		us_Delay(5000);
 	}
-	else {
+	else {									// 8.22ms
 //		HAL_Delay(10);
 		us_Delay(10000);
 	}
@@ -389,24 +337,24 @@ void pMMG_ReadUncompValue_multiple_3(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj
 	HAL_SPI_Transmit(pMMG_Obj2->pMMG_hspi, &SPITxData, 1, 10);
 	HAL_SPI_Transmit(pMMG_Obj3->pMMG_hspi, &SPITxData, 1, 10);
 
-	if (temperatureOSR == 0x00) {
+	if (temperatureOSR == 0x00) {				// 0.54ms
 //		HAL_Delay(1);
 //		us_Delay(1000);
 		us_Delay(610);
 	}
-	else if (temperatureOSR == 0x02) {
+	else if (temperatureOSR == 0x02) {			// 1.06ms
 //		HAL_Delay(2);
 		us_Delay(2000);
 	}
-	else if (temperatureOSR == 0x04) {
+	else if (temperatureOSR == 0x04) {			// 2.08ms
 //		HAL_Delay(3);
 		us_Delay(3000);
 	}
-	else if (temperatureOSR == 0x06) {
+	else if (temperatureOSR == 0x06) {			// 4.13ms
 //		HAL_Delay(5);
 		us_Delay(5000);
 	}
-	else {
+	else {										// 8.22ms
 //		HAL_Delay(10);
 		us_Delay(10000);
 	}
@@ -477,24 +425,24 @@ void pMMG_ReadUncompValue_multiple_2(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj
 	HAL_SPI_Transmit(pMMG_Obj1->pMMG_hspi, &SPITxData, 1, 10);
 	HAL_SPI_Transmit(pMMG_Obj2->pMMG_hspi, &SPITxData, 1, 10);
 
-	if (pressureOSR == 0x00) {
+	if (pressureOSR == 0x00) {				// 0.54ms
 //		HAL_Delay(1);
 //		us_Delay(1000);
 		us_Delay(610);
 	}
-	else if (pressureOSR == 0x02) {
+	else if (pressureOSR == 0x02) {			// 1.06ms
 //		HAL_Delay(2);
 		us_Delay(2000);
 	}
-	else if (pressureOSR == 0x04) {
+	else if (pressureOSR == 0x04) {			// 2.08ms
 //		HAL_Delay(3);
 		us_Delay(3000);
 	}
-	else if (pressureOSR == 0x06) {
+	else if (pressureOSR == 0x06) {			// 4.13ms
 //		HAL_Delay(5);
 		us_Delay(5000);
 	}
-	else {
+	else {									// 8.22ms
 //		HAL_Delay(10);
 		us_Delay(10000);
 	}
@@ -530,24 +478,24 @@ void pMMG_ReadUncompValue_multiple_2(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj
 	HAL_SPI_Transmit(pMMG_Obj1->pMMG_hspi, &SPITxData, 1, 10);
 	HAL_SPI_Transmit(pMMG_Obj2->pMMG_hspi, &SPITxData, 1, 10);
 
-	if (temperatureOSR == 0x00) {
+	if (temperatureOSR == 0x00) {				// 0.54ms
 //		HAL_Delay(1);
 //		us_Delay(1000);
 		us_Delay(610);
 	}
-	else if (temperatureOSR == 0x02) {
+	else if (temperatureOSR == 0x02) {			// 1.06ms
 //		HAL_Delay(2);
 		us_Delay(2000);
 	}
-	else if (temperatureOSR == 0x04) {
+	else if (temperatureOSR == 0x04) {			// 2.08ms
 //		HAL_Delay(3);
 		us_Delay(3000);
 	}
-	else if (temperatureOSR == 0x06) {
+	else if (temperatureOSR == 0x06) {			// 4.13ms
 //		HAL_Delay(5);
 		us_Delay(5000);
 	}
-	else {
+	else {										// 8.22ms
 //		HAL_Delay(10);
 		us_Delay(10000);
 	}
