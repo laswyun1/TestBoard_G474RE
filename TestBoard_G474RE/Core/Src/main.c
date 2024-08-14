@@ -154,13 +154,13 @@ int main(void)
 
   /* ------------------ Extended G474RE Board Version ------------------ */
   state1 = pMMG_Init(&pMMGObj1, &hspi1, GPIOC, GPIO_PIN_8);
-  state2 = pMMG_Init(&pMMGObj2, &hspi1, GPIOC, GPIO_PIN_6);
-  state3 = pMMG_Init(&pMMGObj3, &hspi1, GPIOC, GPIO_PIN_5);
+//  state2 = pMMG_Init(&pMMGObj2, &hspi1, GPIOC, GPIO_PIN_6);
+//  state3 = pMMG_Init(&pMMGObj3, &hspi1, GPIOC, GPIO_PIN_5);
   state4 = pMMG_Init(&pMMGObj4, &hspi2, GPIOA, GPIO_PIN_12);
-  state5 = pMMG_Init(&pMMGObj5, &hspi2, GPIOA, GPIO_PIN_11);
-  state6 = pMMG_Init(&pMMGObj6, &hspi2, GPIOB, GPIO_PIN_12);
+//  state5 = pMMG_Init(&pMMGObj5, &hspi2, GPIOA, GPIO_PIN_11);
+//  state6 = pMMG_Init(&pMMGObj6, &hspi2, GPIOB, GPIO_PIN_12);
   state7 = pMMG_Init(&pMMGObj7, &hspi3, GPIOB, GPIO_PIN_11);
-  state8 = pMMG_Init(&pMMGObj8, &hspi3, GPIOB, GPIO_PIN_2);
+//  state8 = pMMG_Init(&pMMGObj8, &hspi3, GPIOB, GPIO_PIN_2);
 
   /* If you use Timer Interrupt */
 //  HAL_TIM_Base_Start_IT(&htim3);
@@ -190,8 +190,8 @@ int main(void)
 
 	  /* (4) 8-pMMG measurement with Extended G474RE Board by 3-phases [ 4.22ms = (1.220ms + 3*70us)*2 + (1.220ms + 2*70us) ] */
 	  pMMG_Update_multiple_3(&pMMGObj1, &pMMGObj4, &pMMGObj7);
-	  pMMG_Update_multiple_3(&pMMGObj2, &pMMGObj5, &pMMGObj8);
-	  pMMG_Update_multiple_2(&pMMGObj3, &pMMGObj6);
+//	  pMMG_Update_multiple_3(&pMMGObj2, &pMMGObj5, &pMMGObj8);
+//	  pMMG_Update_multiple_2(&pMMGObj3, &pMMGObj6);
 
 
 	  codeTime = DWT->CYCCNT / 170 - start;

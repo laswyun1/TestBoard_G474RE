@@ -55,18 +55,18 @@ typedef enum _pMMG_State_t {
 /* PROM data structure */
 typedef struct _pMMG_PROMData_t {
   uint16_t reserved;
-  uint16_t sens;
-  uint16_t off;
-  uint16_t tcs;
-  uint16_t tco;
-  uint16_t tref;
-  uint16_t tempsens;
+  uint16_t sens;		// Typ : 46372
+  uint16_t off;			// Typ : 43981
+  uint16_t tcs;			// Typ : 29059
+  uint16_t tco;			// Typ : 27842
+  uint16_t tref;		// Typ : 31553
+  uint16_t tempsens;	// Typ : 28165
   uint16_t crc;
 } pMMG_PROMData_t;
 
 typedef struct _pMMG_UncompData_t {
-	uint32_t uncompPressure;
-	uint32_t uncompTemperature;
+	uint32_t uncompPressure;		// Typ : 6465444
+	uint32_t uncompTemperature;		// Typ : 8077636
 } pMMG_UncompData_t;
 
 typedef struct _pMMG_Data_t {

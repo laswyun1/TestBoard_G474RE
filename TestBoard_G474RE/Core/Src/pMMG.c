@@ -68,14 +68,16 @@ void pMMG_ReadPROM(pMMG_Obj_t* pMMG_Obj) {
 
 	/* Set corresponding data */
 	pMMG_Obj->promData.reserved = (uint16_t)( ((uint16_t)promPtr[0] << 8) + (uint16_t)promPtr[1] );
-	pMMG_Obj->promData.sens 	= (uint16_t)( ((uint16_t)promPtr[2] << 8) + (uint16_t)promPtr[3] );
-	pMMG_Obj->promData.off 		= (uint16_t)( ((uint16_t)promPtr[4] << 8) + (uint16_t)promPtr[5] );
-	pMMG_Obj->promData.tcs 		= (uint16_t)( ((uint16_t)promPtr[6] << 8) + (uint16_t)promPtr[7] );
-	pMMG_Obj->promData.tco 		= (uint16_t)( ((uint16_t)promPtr[8] << 8) + (uint16_t)promPtr[9] );
-	pMMG_Obj->promData.tref 	= (uint16_t)( ((uint16_t)promPtr[10] << 8) + (uint16_t)promPtr[11] );
-	pMMG_Obj->promData.tempsens = (uint16_t)( ((uint16_t)promPtr[12] << 8) + (uint16_t)promPtr[13] );
+	pMMG_Obj->promData.sens 	= (uint16_t)( ((uint16_t)promPtr[2] << 8) + (uint16_t)promPtr[3] );			// Typ : 46372
+	pMMG_Obj->promData.off 		= (uint16_t)( ((uint16_t)promPtr[4] << 8) + (uint16_t)promPtr[5] );			// Typ : 43981
+	pMMG_Obj->promData.tcs 		= (uint16_t)( ((uint16_t)promPtr[6] << 8) + (uint16_t)promPtr[7] );			// Typ : 29059
+	pMMG_Obj->promData.tco 		= (uint16_t)( ((uint16_t)promPtr[8] << 8) + (uint16_t)promPtr[9] );			// Typ : 27842
+	pMMG_Obj->promData.tref 	= (uint16_t)( ((uint16_t)promPtr[10] << 8) + (uint16_t)promPtr[11] );		// Typ : 31553
+	pMMG_Obj->promData.tempsens = (uint16_t)( ((uint16_t)promPtr[12] << 8) + (uint16_t)promPtr[13] );		// Typ : 28165
 	pMMG_Obj->promData.crc  	= (uint16_t)( ((uint16_t)promPtr[14] << 8) + (uint16_t)promPtr[15] );
 }
+
+
 
 
 /* Reading the uncompensated data */
