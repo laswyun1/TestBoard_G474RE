@@ -99,7 +99,9 @@ void pMMG_EnableCS(pMMG_Obj_t* pMMG_Obj);
 void pMMG_DisableCS(pMMG_Obj_t* pMMG_Obj);
 void us_Delay(uint32_t us_delay);
 
-void pMMG_ReadUncompValue_multiple(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2, pMMG_Obj_t* pMMG_Obj3);
-void pMMG_Update_multiple(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2, pMMG_Obj_t* pMMG_Obj3);
+void pMMG_ReadUncompValue_multiple_3(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2, pMMG_Obj_t* pMMG_Obj3);
+void pMMG_Update_multiple_3(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2, pMMG_Obj_t* pMMG_Obj3);
+void pMMG_ReadUncompValue_multiple_2(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2);
+void pMMG_Update_multiple_2(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2);
 
 #endif /* _PMMG_H_ */

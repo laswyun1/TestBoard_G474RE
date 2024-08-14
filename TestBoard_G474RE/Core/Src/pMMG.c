@@ -95,7 +95,8 @@ void pMMG_ReadUncompValue(pMMG_Obj_t* pMMG_Obj) {
 
 	if (pressureOSR == 0x00) {
 //		HAL_Delay(1);
-		us_Delay(1000);
+//		us_Delay(1000);
+		us_Delay(610);
 	}
 	else if (pressureOSR == 0x02) {
 //		HAL_Delay(2);
@@ -141,7 +142,8 @@ void pMMG_ReadUncompValue(pMMG_Obj_t* pMMG_Obj) {
 
 	if (temperatureOSR == 0x00) {
 //		HAL_Delay(1);
-		us_Delay(1000);
+//		us_Delay(1000);
+		us_Delay(610);
 	}
 	else if (temperatureOSR == 0x02) {
 //		HAL_Delay(2);
@@ -306,7 +308,7 @@ void us_Delay(uint32_t us_delay)
 
 
 
-void pMMG_ReadUncompValue_multiple(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2, pMMG_Obj_t* pMMG_Obj3) {
+void pMMG_ReadUncompValue_multiple_3(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2, pMMG_Obj_t* pMMG_Obj3) {
 
 	/* Data buffer for sensor replies */
 	uint8_t rxData1[3];
@@ -329,7 +331,7 @@ void pMMG_ReadUncompValue_multiple(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2,
 	if (pressureOSR == 0x00) {
 //		HAL_Delay(1);
 //		us_Delay(1000);
-		us_Delay(600);
+		us_Delay(610);
 	}
 	else if (pressureOSR == 0x02) {
 //		HAL_Delay(2);
@@ -390,7 +392,7 @@ void pMMG_ReadUncompValue_multiple(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2,
 	if (temperatureOSR == 0x00) {
 //		HAL_Delay(1);
 //		us_Delay(1000);
-		us_Delay(600);
+		us_Delay(610);
 	}
 	else if (temperatureOSR == 0x02) {
 //		HAL_Delay(2);
@@ -440,8 +442,8 @@ void pMMG_ReadUncompValue_multiple(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2,
 
 
 
-void pMMG_Update_multiple(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2, pMMG_Obj_t* pMMG_Obj3) {
-	pMMG_ReadUncompValue_multiple(pMMG_Obj1, pMMG_Obj2, pMMG_Obj3);
+void pMMG_Update_multiple_3(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2, pMMG_Obj_t* pMMG_Obj3) {
+	pMMG_ReadUncompValue_multiple_3(pMMG_Obj1, pMMG_Obj2, pMMG_Obj3);
 	pMMG_Convert(pMMG_Obj1);
 	pMMG_Convert(pMMG_Obj2);
 	pMMG_Convert(pMMG_Obj3);
@@ -458,7 +460,134 @@ void pMMG_Update_multiple(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2, pMMG_Obj
 
 
 
+void pMMG_ReadUncompValue_multiple_2(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2) {
 
+	/* Data buffer for sensor replies */
+	uint8_t rxData1[3];
+	uint8_t rxData2[3];
+
+	/* ---------------------------------------------------------------------------- */
+
+	/* (1) Pressure part */
+	pMMG_EnableCS(pMMG_Obj1);
+	pMMG_EnableCS(pMMG_Obj2);
+
+	/* Setting the OSR */
+	SPITxData = CONVERT_D1_OSR_DEFAULT_CMD | pressureOSR;
+	HAL_SPI_Transmit(pMMG_Obj1->pMMG_hspi, &SPITxData, 1, 10);
+	HAL_SPI_Transmit(pMMG_Obj2->pMMG_hspi, &SPITxData, 1, 10);
+
+	if (pressureOSR == 0x00) {
+//		HAL_Delay(1);
+//		us_Delay(1000);
+		us_Delay(610);
+	}
+	else if (pressureOSR == 0x02) {
+//		HAL_Delay(2);
+		us_Delay(2000);
+	}
+	else if (pressureOSR == 0x04) {
+//		HAL_Delay(3);
+		us_Delay(3000);
+	}
+	else if (pressureOSR == 0x06) {
+//		HAL_Delay(5);
+		us_Delay(5000);
+	}
+	else {
+//		HAL_Delay(10);
+		us_Delay(10000);
+	}
+
+	pMMG_DisableCS(pMMG_Obj1);
+	pMMG_DisableCS(pMMG_Obj2);
+
+	/* Reading 24-bit ADC value */
+	pMMG_EnableCS(pMMG_Obj1);
+	pMMG_EnableCS(pMMG_Obj2);
+
+	SPITxData = READ_ADC_CMD;
+	HAL_SPI_Transmit(pMMG_Obj1->pMMG_hspi, &SPITxData, 1, 10);
+	HAL_SPI_Receive(pMMG_Obj1->pMMG_hspi, rxData1, 3, 10);
+	HAL_SPI_Transmit(pMMG_Obj2->pMMG_hspi, &SPITxData, 1, 10);
+	HAL_SPI_Receive(pMMG_Obj2->pMMG_hspi, rxData2, 3, 10);
+
+	pMMG_DisableCS(pMMG_Obj1);
+	pMMG_DisableCS(pMMG_Obj2);
+
+	/* Convert the 24-bit raw data into a 32-bit useful integer data */
+	pMMG_Obj1->uncompData.uncompPressure = ( ((uint32_t) rxData1[0] << 16) | ((uint32_t) rxData1[1] << 8) | ((uint32_t) rxData1[2]) );
+	pMMG_Obj2->uncompData.uncompPressure = ( ((uint32_t) rxData2[0] << 16) | ((uint32_t) rxData2[1] << 8) | ((uint32_t) rxData2[2]) );
+	/* ---------------------------------------------------------------------------- */
+
+
+	/* (2) Temperature part */
+	pMMG_EnableCS(pMMG_Obj1);
+	pMMG_EnableCS(pMMG_Obj2);
+
+	/* Setting the OSR */
+	SPITxData = CONVERT_D2_OSR_DEFAULT_CMD | temperatureOSR;
+	HAL_SPI_Transmit(pMMG_Obj1->pMMG_hspi, &SPITxData, 1, 10);
+	HAL_SPI_Transmit(pMMG_Obj2->pMMG_hspi, &SPITxData, 1, 10);
+
+	if (temperatureOSR == 0x00) {
+//		HAL_Delay(1);
+//		us_Delay(1000);
+		us_Delay(610);
+	}
+	else if (temperatureOSR == 0x02) {
+//		HAL_Delay(2);
+		us_Delay(2000);
+	}
+	else if (temperatureOSR == 0x04) {
+//		HAL_Delay(3);
+		us_Delay(3000);
+	}
+	else if (temperatureOSR == 0x06) {
+//		HAL_Delay(5);
+		us_Delay(5000);
+	}
+	else {
+//		HAL_Delay(10);
+		us_Delay(10000);
+	}
+
+	pMMG_DisableCS(pMMG_Obj1);
+	pMMG_DisableCS(pMMG_Obj2);
+
+	/* Reading 24-bit ADC value */
+	pMMG_EnableCS(pMMG_Obj1);
+	pMMG_EnableCS(pMMG_Obj2);
+
+	SPITxData = READ_ADC_CMD;
+	HAL_SPI_Transmit(pMMG_Obj1->pMMG_hspi, &SPITxData, 1, 10);
+	HAL_SPI_Receive(pMMG_Obj1->pMMG_hspi, rxData1, 3, 10);
+	HAL_SPI_Transmit(pMMG_Obj2->pMMG_hspi, &SPITxData, 1, 10);
+	HAL_SPI_Receive(pMMG_Obj2->pMMG_hspi, rxData2, 3, 10);
+
+	pMMG_DisableCS(pMMG_Obj1);
+	pMMG_DisableCS(pMMG_Obj2);
+
+
+	/* Convert the 24-bit raw data into a 32-bit useful integer data */
+	pMMG_Obj1->uncompData.uncompTemperature = ( ((uint32_t) rxData1[0] << 16) | ((uint32_t) rxData1[1] << 8) | ((uint32_t) rxData1[2]) );
+	pMMG_Obj2->uncompData.uncompTemperature = ( ((uint32_t) rxData2[0] << 16) | ((uint32_t) rxData2[1] << 8) | ((uint32_t) rxData2[2]) );
+}
+
+
+
+
+void pMMG_Update_multiple_2(pMMG_Obj_t* pMMG_Obj1, pMMG_Obj_t* pMMG_Obj2) {
+	pMMG_ReadUncompValue_multiple_2(pMMG_Obj1, pMMG_Obj2);
+	pMMG_Convert(pMMG_Obj1);
+	pMMG_Convert(pMMG_Obj2);
+
+	pMMG_Obj1->pMMGData.pressureKPa = ( (double)(pMMG_Obj1->pMMGData.pressure) / 1000.0 );
+	pMMG_Obj1->pMMGData.temperatureC = ( (double)(pMMG_Obj1->pMMGData.temperature) / 100.0 );
+
+	pMMG_Obj2->pMMGData.pressureKPa = ( (double)(pMMG_Obj2->pMMGData.pressure) / 1000.0 );
+	pMMG_Obj2->pMMGData.temperatureC = ( (double)(pMMG_Obj2->pMMGData.temperature) / 100.0 );
+}
 
 
 

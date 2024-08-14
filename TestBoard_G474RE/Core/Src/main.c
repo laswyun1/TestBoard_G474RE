@@ -155,10 +155,6 @@ int main(void)
 //	  pMMG_Update(&pMMGObj2);
 //	  pMMG_Update(&pMMGObj3);
 
-	  pMMG_Update(&pMMGObj1);
-	  pMMG_Update(&pMMGObj2);
-
-
 	  /* (2) 3-pMMG at once (2ms + 3*70us) */
 //	  pMMG_Update_multiple(&pMMGObj1, &pMMGObj2, &pMMGObj3);
 
@@ -166,6 +162,11 @@ int main(void)
 //	  pMMG_Update_multiple(&pMMGObj1, &pMMGObj4, &pMMGObj7);
 //	  pMMG_Update_multiple(&pMMGObj2, &pMMGObj5, &pMMGObj8);
 //	  pMMG_Update_multiple(&pMMGObj7, &pMMGObj8, &pMMGObj9);
+
+	  /* (4) 8-pMMG measurement with Extended G474RE Board by 3-phases [ 4.22ms = (1.220ms + 3*70us)*2 + (1.220ms + 2*70us) ] */
+	  pMMG_Update_multiple_3(&pMMGObj1, &pMMGObj4, &pMMGObj7);
+	  pMMG_Update_multiple_3(&pMMGObj2, &pMMGObj5, &pMMGObj8);
+	  pMMG_Update_multiple_2(&pMMGObj3, &pMMGObj6);
 
 	  codeTime = DWT->CYCCNT / 170 - start;
     /* USER CODE END WHILE */
