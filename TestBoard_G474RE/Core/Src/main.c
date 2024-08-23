@@ -30,7 +30,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef struct _pMMG_pressure {
+typedef struct _pMMG_pressure_t {
 	double pMMG1_press;
 	double pMMG2_press;
 	double pMMG3_press;
@@ -39,9 +39,9 @@ typedef struct _pMMG_pressure {
 	double pMMG6_press;
 	double pMMG7_press;
 	double pMMG8_press;
-} pMMG_pressure;
+} pMMG_pressure_t;
 
-typedef struct _pMMG_temperature {
+typedef struct _pMMG_temperature_t {
 	double pMMG1_temp;
 	double pMMG2_temp;
 	double pMMG3_temp;
@@ -50,14 +50,9 @@ typedef struct _pMMG_temperature {
 	double pMMG6_temp;
 	double pMMG7_temp;
 	double pMMG8_temp;
-} pMMG_temperature;
+} pMMG_temperature_t;
 
-typedef struct _pMMG {
-	pMMG_pressure pMMG_press;
-	pMMG_temperature pMMG_temp;
-} pMMG;
-
-typedef struct _pMMG_Err {
+typedef struct _pMMG_err_t {
 	uint32_t err1;
 	uint32_t err2;
 	uint32_t err3;
@@ -67,13 +62,27 @@ typedef struct _pMMG_Err {
 	uint32_t err7;
 	uint32_t err8;
 	uint32_t totalErr;
-} pMMG_Err;
+} pMMG_err_t;
+
+typedef struct _pMMG_t {
+	pMMG_pressure_t pMMG_press;
+	pMMG_temperature_t pMMG_temp;
+	pMMG_err_t pMMG_err;
+} pMMG;
+
 
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define	CS_1	 1
+#define CS_2 	 1
+#define CS_3 	 0
+#define CS_4 	 0
+#define CS_5 	 0
+#define CS_6 	 0
+#define CS_7 	 0
+#define CS_8 	 0
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -104,13 +113,11 @@ uint8_t state6 = 0;
 /* SPI3 port */
 pMMG_Obj_t pMMGObj7;
 pMMG_Obj_t pMMGObj8;
-pMMG_Obj_t pMMGObj9;
 uint8_t state7 = 0;
 uint8_t state8 = 0;
-uint8_t state9 = 0;
+
 
 pMMG totalpMMG;
-pMMG_Err pMMG_err;
 
 
 float start = 0;
@@ -185,25 +192,31 @@ int main(void)
   DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
   DWT->CYCCNT = 0;
 
-  /* Initialize pMMG */
-//  state1 = pMMG_Init(&pMMGObj1, &hspi1, GPIOC, GPIO_PIN_8);
-//  state4 = pMMG_Init(&pMMGObj4, &hspi2, GPIOA, GPIO_PIN_12);
-//  state7 = pMMG_Init(&pMMGObj7, &hspi3, GPIOB, GPIO_PIN_11);
-
-//  state2 = pMMG_Init(&pMMGObj2, &hspi1, GPIOC, GPIO_PIN_6);
-//  state5 = pMMG_Init(&pMMGObj5, &hspi2, GPIOA, GPIO_PIN_11);
-//  state8 = pMMG_Init(&pMMGObj8, &hspi3, GPIOB, GPIO_PIN_2);
-
-
   /* ------------------ Extended G474RE Board Version ------------------ */
-  state1 = pMMG_Init(&pMMGObj1, &hspi1, GPIOC, GPIO_PIN_8);
-  state2 = pMMG_Init(&pMMGObj2, &hspi1, GPIOC, GPIO_PIN_6);
-  state3 = pMMG_Init(&pMMGObj3, &hspi1, GPIOC, GPIO_PIN_5);
-  state4 = pMMG_Init(&pMMGObj4, &hspi2, GPIOA, GPIO_PIN_12);
-  state5 = pMMG_Init(&pMMGObj5, &hspi2, GPIOA, GPIO_PIN_11);
-  state6 = pMMG_Init(&pMMGObj6, &hspi2, GPIOB, GPIO_PIN_12);
-  state7 = pMMG_Init(&pMMGObj7, &hspi3, GPIOB, GPIO_PIN_11);
-  state8 = pMMG_Init(&pMMGObj8, &hspi3, GPIOB, GPIO_PIN_2);
+  if (CS_1 == 1) {
+	  state1 = pMMG_Init(&pMMGObj1, &hspi1, GPIOC, GPIO_PIN_8);
+  }
+  if (CS_2 == 1) {
+	  state2 = pMMG_Init(&pMMGObj2, &hspi1, GPIOC, GPIO_PIN_6);
+  }
+  if (CS_3 == 1) {
+	  state3 = pMMG_Init(&pMMGObj3, &hspi1, GPIOC, GPIO_PIN_5);
+  }
+  if (CS_4 == 1) {
+	  state4 = pMMG_Init(&pMMGObj4, &hspi2, GPIOA, GPIO_PIN_12);
+  }
+  if (CS_5 == 1) {
+	  state5 = pMMG_Init(&pMMGObj5, &hspi2, GPIOA, GPIO_PIN_11);
+  }
+  if (CS_6 == 1) {
+	  state6 = pMMG_Init(&pMMGObj6, &hspi2, GPIOB, GPIO_PIN_12);
+  }
+  if (CS_7 == 1) {
+	  state7 = pMMG_Init(&pMMGObj7, &hspi3, GPIOB, GPIO_PIN_11);
+  }
+  if (CS_8 == 1) {
+	  state8 = pMMG_Init(&pMMGObj8, &hspi3, GPIOB, GPIO_PIN_2);
+  }
 
   /* If you use Timer Interrupt */
 //  HAL_TIM_Base_Start_IT(&htim3);
@@ -218,25 +231,34 @@ int main(void)
 	  DWT->CYCCNT = 0;
 	  start = DWT->CYCCNT / 170;
 
-	  /* (1) One pMMG at once ((2ms + 70us) + (2ms + 70us) + (2ms + 70us)) */
-//	  pMMG_Update(&pMMGObj1);
-//	  pMMG_Update(&pMMGObj2);
-//	  pMMG_Update(&pMMGObj3);
+	  /* Get Each pMMG Values */
+	  if (CS_1 == 1) {
+		  pMMG_Update(&pMMGObj1);
+	  }
+	  if (CS_2 == 1) {
+		  pMMG_Update(&pMMGObj2);
+	  }
+	  if (CS_3 == 1) {
+		  pMMG_Update(&pMMGObj3);
+	  }
+	  if (CS_4 == 1) {
+		  pMMG_Update(&pMMGObj4);
+	  }
+	  if (CS_5 == 1) {
+		  pMMG_Update(&pMMGObj5);
+	  }
+	  if (CS_6 == 1) {
+		  pMMG_Update(&pMMGObj6);
+	  }
+	  if (CS_7 == 1) {
+		  pMMG_Update(&pMMGObj7);
+	  }
+	  if (CS_8 == 1) {
+		  pMMG_Update(&pMMGObj8);
+	  }
 
-	  /* (2) 3-pMMG at once (2ms + 3*70us) */
-//	  pMMG_Update_multiple(&pMMGObj1, &pMMGObj2, &pMMGObj3);
 
-	  /* (3) 9-pMMG measurement by 3-phases ((2ms + 3*70us)*3) */
-//	  pMMG_Update_multiple(&pMMGObj1, &pMMGObj4, &pMMGObj7);
-//	  pMMG_Update_multiple(&pMMGObj2, &pMMGObj5, &pMMGObj8);
-//	  pMMG_Update_multiple(&pMMGObj7, &pMMGObj8, &pMMGObj9);
-
-	  /* (4) 8-pMMG measurement with Extended G474RE Board by 3-phases [ 4.22ms = (1.220ms + 3*70us)*2 + (1.220ms + 2*70us) ] */
-	  pMMG_Update_multiple_3(&pMMGObj1, &pMMGObj4, &pMMGObj7);
-	  pMMG_Update_multiple_3(&pMMGObj2, &pMMGObj5, &pMMGObj8);
-	  pMMG_Update_multiple_2(&pMMGObj3, &pMMGObj6);
-
-	  // Mapping //
+	  /*  Mapping  */
 	  totalpMMG.pMMG_press.pMMG1_press = pMMGObj1.pMMGData.pressureKPa;
 	  totalpMMG.pMMG_press.pMMG2_press = pMMGObj2.pMMGData.pressureKPa;
 	  totalpMMG.pMMG_press.pMMG3_press = pMMGObj3.pMMGData.pressureKPa;
@@ -259,53 +281,37 @@ int main(void)
 	  codeTime = DWT->CYCCNT / 170 - start;
 	  totalCodeTime += (float)codeTime / 1000000;
 
-	  if (pMMGObj1.pMMGData.pressureKPa > 140 || pMMGObj1.pMMGData.pressureKPa < 90) {
-//		  errCnt1++;
-//		  totalErrCnt++;
-		  pMMG_err.err1++;
-		  pMMG_err.totalErr++;
+	  if ( (pMMGObj1.pMMGData.pressureKPa > 140 || pMMGObj1.pMMGData.pressureKPa < 90) && (CS_1 == 1) ) {
+		  totalpMMG.pMMG_err.err1++;
+		  totalpMMG.pMMG_err.totalErr++;
 	  }
-	  if (pMMGObj2.pMMGData.pressureKPa > 140 || pMMGObj2.pMMGData.pressureKPa < 90) {
-//		  errCnt2++;
-//		  totalErrCnt++;
-		  pMMG_err.err2++;
-		  pMMG_err.totalErr++;
+	  if ( (pMMGObj2.pMMGData.pressureKPa > 140 || pMMGObj2.pMMGData.pressureKPa < 90) && (CS_2 == 1) ) {
+		  totalpMMG.pMMG_err.err2++;
+		  totalpMMG.pMMG_err.totalErr++;
 	  }
-	  if (pMMGObj3.pMMGData.pressureKPa > 140 || pMMGObj3.pMMGData.pressureKPa < 90) {
-//		  errCnt3++;
-//		  totalErrCnt++;
-		  pMMG_err.err3++;
-		  pMMG_err.totalErr++;
+	  if ( (pMMGObj3.pMMGData.pressureKPa > 140 || pMMGObj3.pMMGData.pressureKPa < 90) && (CS_3 == 1) ) {
+		  totalpMMG.pMMG_err.err3++;
+		  totalpMMG.pMMG_err.totalErr++;
 	  }
-	  if (pMMGObj4.pMMGData.pressureKPa > 140 || pMMGObj4.pMMGData.pressureKPa < 90) {
-//		  errCnt4++;
-//		  totalErrCnt++;
-		  pMMG_err.err4++;
-		  pMMG_err.totalErr++;
+	  if ( (pMMGObj4.pMMGData.pressureKPa > 140 || pMMGObj4.pMMGData.pressureKPa < 90) && (CS_4 == 1) ) {
+		  totalpMMG.pMMG_err.err4++;
+		  totalpMMG.pMMG_err.totalErr++;
 	  }
-	  if (pMMGObj5.pMMGData.pressureKPa > 140 || pMMGObj5.pMMGData.pressureKPa < 90) {
-//		  errCnt5++;
-//		  totalErrCnt++;
-		  pMMG_err.err5++;
-		  pMMG_err.totalErr++;
+	  if ( (pMMGObj5.pMMGData.pressureKPa > 140 || pMMGObj5.pMMGData.pressureKPa < 90) && (CS_5 == 1) ) {
+		  totalpMMG.pMMG_err.err5++;
+		  totalpMMG.pMMG_err.totalErr++;
 	  }
-	  if (pMMGObj6.pMMGData.pressureKPa > 140 || pMMGObj6.pMMGData.pressureKPa < 90) {
-//		  errCnt6++;
-//		  totalErrCnt++;
-		  pMMG_err.err6++;
-		  pMMG_err.totalErr++;
+	  if ( (pMMGObj6.pMMGData.pressureKPa > 140 || pMMGObj6.pMMGData.pressureKPa < 90) && (CS_6 == 1) ) {
+		  totalpMMG.pMMG_err.err6++;
+		  totalpMMG.pMMG_err.totalErr++;
 	  }
-	  if (pMMGObj7.pMMGData.pressureKPa > 140 || pMMGObj7.pMMGData.pressureKPa < 90) {
-//		  errCnt7++;
-//		  totalErrCnt++;
-		  pMMG_err.err7++;
-		  pMMG_err.totalErr++;
+	  if ( (pMMGObj7.pMMGData.pressureKPa > 140 || pMMGObj7.pMMGData.pressureKPa < 90) && (CS_7 == 1) ) {
+		  totalpMMG.pMMG_err.err7++;
+		  totalpMMG.pMMG_err.totalErr++;
 	  }
-	  if (pMMGObj8.pMMGData.pressureKPa > 140 || pMMGObj8.pMMGData.pressureKPa < 90) {
-//		  errCnt8++;
-//		  totalErrCnt++;
-		  pMMG_err.err8++;
-		  pMMG_err.totalErr++;
+	  if ( (pMMGObj8.pMMGData.pressureKPa > 140 || pMMGObj8.pMMGData.pressureKPa < 90) && (CS_8 == 1) ) {
+		  totalpMMG.pMMG_err.err8++;
+		  totalpMMG.pMMG_err.totalErr++;
 	  }
 
     /* USER CODE END WHILE */
