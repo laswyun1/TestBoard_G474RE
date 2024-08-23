@@ -30,7 +30,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef struct _pMMG_pressure {
+typedef struct _pMMG_pressure_t {
 	double pMMG1_press;
 	double pMMG2_press;
 	double pMMG3_press;
@@ -39,9 +39,9 @@ typedef struct _pMMG_pressure {
 	double pMMG6_press;
 	double pMMG7_press;
 	double pMMG8_press;
-} pMMG_pressure;
+} pMMG_pressure_t;
 
-typedef struct _pMMG_temperature {
+typedef struct _pMMG_temperature_t {
 	double pMMG1_temp;
 	double pMMG2_temp;
 	double pMMG3_temp;
@@ -50,14 +50,9 @@ typedef struct _pMMG_temperature {
 	double pMMG6_temp;
 	double pMMG7_temp;
 	double pMMG8_temp;
-} pMMG_temperature;
+} pMMG_temperature_t;
 
-typedef struct _pMMG {
-	pMMG_pressure pMMG_press;
-	pMMG_temperature pMMG_temp;
-} pMMG;
-
-typedef struct _pMMG_Err {
+typedef struct _pMMG_err_t {
 	uint32_t err1;
 	uint32_t err2;
 	uint32_t err3;
@@ -67,7 +62,14 @@ typedef struct _pMMG_Err {
 	uint32_t err7;
 	uint32_t err8;
 	uint32_t totalErr;
-} pMMG_Err;
+} pMMG_err_t;
+
+typedef struct _pMMG_t {
+	pMMG_pressure_t pMMG_press;
+	pMMG_temperature_t pMMG_temp;
+	pMMG_err_t pMMG_err;
+} pMMG_t;
+
 
 /* USER CODE END PTD */
 
@@ -104,32 +106,17 @@ uint8_t state6 = 0;
 /* SPI3 port */
 pMMG_Obj_t pMMGObj7;
 pMMG_Obj_t pMMGObj8;
-pMMG_Obj_t pMMGObj9;
 uint8_t state7 = 0;
 uint8_t state8 = 0;
-uint8_t state9 = 0;
 
-pMMG totalpMMG;
-pMMG_Err pMMG_err;
+
+pMMG_t totalpMMG;
 
 
 float start = 0;
 float codeTime = 0;		// usec
 
 float totalCodeTime = 0; 	// sec
-
-uint32_t errCnt1 = 0;
-uint32_t errCnt2 = 0;
-uint32_t errCnt3 = 0;
-uint32_t errCnt4 = 0;
-uint32_t errCnt5 = 0;
-uint32_t errCnt6 = 0;
-uint32_t errCnt7 = 0;
-uint32_t errCnt8 = 0;
-
-uint32_t totalErrCnt = 0;
-
-
 
 /* USER CODE END PV */
 
@@ -259,53 +246,37 @@ int main(void)
 	  codeTime = DWT->CYCCNT / 170 - start;
 	  totalCodeTime += (float)codeTime / 1000000;
 
-	  if (pMMGObj1.pMMGData.pressureKPa > 140 || pMMGObj1.pMMGData.pressureKPa < 90) {
-//		  errCnt1++;
-//		  totalErrCnt++;
-		  pMMG_err.err1++;
-		  pMMG_err.totalErr++;
+	  if (pMMGObj1.pMMGData.pressureKPa > 150 || pMMGObj1.pMMGData.pressureKPa < 90) {
+		  totalpMMG.pMMG_err.err1++;
+		  totalpMMG.pMMG_err.totalErr++;
 	  }
-	  if (pMMGObj2.pMMGData.pressureKPa > 140 || pMMGObj2.pMMGData.pressureKPa < 90) {
-//		  errCnt2++;
-//		  totalErrCnt++;
-		  pMMG_err.err2++;
-		  pMMG_err.totalErr++;
+	  if (pMMGObj2.pMMGData.pressureKPa > 150 || pMMGObj2.pMMGData.pressureKPa < 90) {
+		  totalpMMG.pMMG_err.err2++;
+		  totalpMMG.pMMG_err.totalErr++;
 	  }
-	  if (pMMGObj3.pMMGData.pressureKPa > 140 || pMMGObj3.pMMGData.pressureKPa < 90) {
-//		  errCnt3++;
-//		  totalErrCnt++;
-		  pMMG_err.err3++;
-		  pMMG_err.totalErr++;
+	  if (pMMGObj3.pMMGData.pressureKPa > 150 || pMMGObj3.pMMGData.pressureKPa < 90) {
+		  totalpMMG.pMMG_err.err3++;
+		  totalpMMG.pMMG_err.totalErr++;
 	  }
-	  if (pMMGObj4.pMMGData.pressureKPa > 140 || pMMGObj4.pMMGData.pressureKPa < 90) {
-//		  errCnt4++;
-//		  totalErrCnt++;
-		  pMMG_err.err4++;
-		  pMMG_err.totalErr++;
+	  if (pMMGObj4.pMMGData.pressureKPa > 150 || pMMGObj4.pMMGData.pressureKPa < 90) {
+		  totalpMMG.pMMG_err.err4++;
+		  totalpMMG.pMMG_err.totalErr++;
 	  }
-	  if (pMMGObj5.pMMGData.pressureKPa > 140 || pMMGObj5.pMMGData.pressureKPa < 90) {
-//		  errCnt5++;
-//		  totalErrCnt++;
-		  pMMG_err.err5++;
-		  pMMG_err.totalErr++;
+	  if (pMMGObj5.pMMGData.pressureKPa > 150 || pMMGObj5.pMMGData.pressureKPa < 90) {
+		  totalpMMG.pMMG_err.err5++;
+		  totalpMMG.pMMG_err.totalErr++;
 	  }
-	  if (pMMGObj6.pMMGData.pressureKPa > 140 || pMMGObj6.pMMGData.pressureKPa < 90) {
-//		  errCnt6++;
-//		  totalErrCnt++;
-		  pMMG_err.err6++;
-		  pMMG_err.totalErr++;
+	  if (pMMGObj6.pMMGData.pressureKPa > 150 || pMMGObj6.pMMGData.pressureKPa < 90) {
+		  totalpMMG.pMMG_err.err6++;
+		  totalpMMG.pMMG_err.totalErr++;
 	  }
-	  if (pMMGObj7.pMMGData.pressureKPa > 140 || pMMGObj7.pMMGData.pressureKPa < 90) {
-//		  errCnt7++;
-//		  totalErrCnt++;
-		  pMMG_err.err7++;
-		  pMMG_err.totalErr++;
+	  if (pMMGObj7.pMMGData.pressureKPa > 150 || pMMGObj7.pMMGData.pressureKPa < 90) {
+		  totalpMMG.pMMG_err.err7++;
+		  totalpMMG.pMMG_err.totalErr++;
 	  }
-	  if (pMMGObj8.pMMGData.pressureKPa > 140 || pMMGObj8.pMMGData.pressureKPa < 90) {
-//		  errCnt8++;
-//		  totalErrCnt++;
-		  pMMG_err.err8++;
-		  pMMG_err.totalErr++;
+	  if (pMMGObj8.pMMGData.pressureKPa > 150 || pMMGObj8.pMMGData.pressureKPa < 90) {
+		  totalpMMG.pMMG_err.err8++;
+		  totalpMMG.pMMG_err.totalErr++;
 	  }
 
     /* USER CODE END WHILE */
