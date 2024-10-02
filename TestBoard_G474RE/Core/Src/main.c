@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -44,7 +45,10 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+uint32_t FSRvalue = 0;
+float start = 0;
+float codeTime = 0;
+float totalCodeTime = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -87,7 +91,16 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_LPUART1_UART_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
+
+//  HAL_ADC_Start_IT(&hadc1);		// Continuous Conversion Mode
+
+  CoreDebug->DEMCR &= ~CoreDebug_DEMCR_TRCENA_Msk;
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->CTRL &= ~DWT_CTRL_CYCCNTENA_Msk;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+  DWT->CYCCNT = 0;
 
   /* USER CODE END 2 */
 
@@ -95,6 +108,22 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  DWT->CYCCNT = 0;
+	  start = DWT->CYCCNT / 170;
+
+
+	  /* Polling version */
+	  HAL_ADC_Start(&hadc1);
+	  HAL_ADC_PollForConversion(&hadc1, 1);
+	  FSRvalue = HAL_ADC_GetValue(&hadc1);
+	  HAL_ADC_Stop(&hadc1);
+	  HAL_Delay(1);
+
+
+
+	  codeTime = DWT->CYCCNT / 170 - start;
+	  totalCodeTime += (float)codeTime / 1000000;
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -149,6 +178,13 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+//void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+//{
+//	if (hadc == &hadc1) {
+//		FSRvalue = HAL_ADC_GetValue(&hadc1);
+//	}
+//}
+
 
 /* USER CODE END 4 */
 
