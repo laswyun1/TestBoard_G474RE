@@ -18,6 +18,8 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
+#include "dma.h"
 #include "usart.h"
 #include "spi.h"
 #include "tim.h"
@@ -109,12 +111,14 @@ pMMG_Obj_t pMMGObj8;
 uint8_t state7 = 0;
 uint8_t state8 = 0;
 
-
+/* Total pMMG Obj */
 pMMG_t totalpMMG;
 
+/* FSR DMA memory */
+uint16_t FSRvalue[2] = {0};		// 0: PA0, 1: PA1
 
 float start = 0;
-float codeTime = 0;		// usec
+float codeTime = 0;			// usec
 
 float totalCodeTime = 0; 	// sec
 
@@ -159,11 +163,13 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_LPUART1_UART_Init();
   MX_TIM3_Init();
   MX_SPI3_Init();
   MX_SPI1_Init();
   MX_SPI2_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
 
   CoreDebug->DEMCR &= ~CoreDebug_DEMCR_TRCENA_Msk;
@@ -192,8 +198,12 @@ int main(void)
   state7 = pMMG_Init(&pMMGObj7, &hspi3, GPIOB, GPIO_PIN_11);
   state8 = pMMG_Init(&pMMGObj8, &hspi3, GPIOB, GPIO_PIN_2);
 
+  /* ---------------------- Start FSR ADC read ------------------------- */
+  HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)FSRvalue, 2);
+
   /* If you use Timer Interrupt */
-//  HAL_TIM_Base_Start_IT(&htim3);
+  HAL_TIM_Base_Start_IT(&htim3);
 
   /* USER CODE END 2 */
 
@@ -201,83 +211,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  /* Reading pMMG */
-	  DWT->CYCCNT = 0;
-	  start = DWT->CYCCNT / 170;
-
-	  /* (1) One pMMG at once ((2ms + 70us) + (2ms + 70us) + (2ms + 70us)) */
-//	  pMMG_Update(&pMMGObj1);
-//	  pMMG_Update(&pMMGObj2);
-//	  pMMG_Update(&pMMGObj3);
-
-	  /* (2) 3-pMMG at once (2ms + 3*70us) */
-//	  pMMG_Update_multiple(&pMMGObj1, &pMMGObj2, &pMMGObj3);
-
-	  /* (3) 9-pMMG measurement by 3-phases ((2ms + 3*70us)*3) */
-//	  pMMG_Update_multiple(&pMMGObj1, &pMMGObj4, &pMMGObj7);
-//	  pMMG_Update_multiple(&pMMGObj2, &pMMGObj5, &pMMGObj8);
-//	  pMMG_Update_multiple(&pMMGObj7, &pMMGObj8, &pMMGObj9);
-
-	  /* (4) 8-pMMG measurement with Extended G474RE Board by 3-phases [ 4.22ms = (1.220ms + 3*70us)*2 + (1.220ms + 2*70us) ] */
-	  pMMG_Update_multiple_3(&pMMGObj1, &pMMGObj4, &pMMGObj7);
-	  pMMG_Update_multiple_3(&pMMGObj2, &pMMGObj5, &pMMGObj8);
-	  pMMG_Update_multiple_2(&pMMGObj3, &pMMGObj6);
-
-	  // Mapping //
-	  totalpMMG.pMMG_press.pMMG1_press = pMMGObj1.pMMGData.pressureKPa;
-	  totalpMMG.pMMG_press.pMMG2_press = pMMGObj2.pMMGData.pressureKPa;
-	  totalpMMG.pMMG_press.pMMG3_press = pMMGObj3.pMMGData.pressureKPa;
-	  totalpMMG.pMMG_press.pMMG4_press = pMMGObj4.pMMGData.pressureKPa;
-	  totalpMMG.pMMG_press.pMMG5_press = pMMGObj5.pMMGData.pressureKPa;
-	  totalpMMG.pMMG_press.pMMG6_press = pMMGObj6.pMMGData.pressureKPa;
-	  totalpMMG.pMMG_press.pMMG7_press = pMMGObj7.pMMGData.pressureKPa;
-	  totalpMMG.pMMG_press.pMMG8_press = pMMGObj8.pMMGData.pressureKPa;
-
-	  totalpMMG.pMMG_temp.pMMG1_temp = pMMGObj1.pMMGData.temperatureC;
-	  totalpMMG.pMMG_temp.pMMG2_temp = pMMGObj2.pMMGData.temperatureC;
-	  totalpMMG.pMMG_temp.pMMG3_temp = pMMGObj3.pMMGData.temperatureC;
-	  totalpMMG.pMMG_temp.pMMG4_temp = pMMGObj4.pMMGData.temperatureC;
-	  totalpMMG.pMMG_temp.pMMG5_temp = pMMGObj5.pMMGData.temperatureC;
-	  totalpMMG.pMMG_temp.pMMG6_temp = pMMGObj6.pMMGData.temperatureC;
-	  totalpMMG.pMMG_temp.pMMG7_temp = pMMGObj7.pMMGData.temperatureC;
-	  totalpMMG.pMMG_temp.pMMG8_temp = pMMGObj8.pMMGData.temperatureC;
-	  ///////////////////////////////////////////////////////////////////////////////
-
-	  codeTime = DWT->CYCCNT / 170 - start;
-	  totalCodeTime += (float)codeTime / 1000000;
-
-	  if (pMMGObj1.pMMGData.pressureKPa > 150 || pMMGObj1.pMMGData.pressureKPa < 90) {
-		  totalpMMG.pMMG_err.err1++;
-		  totalpMMG.pMMG_err.totalErr++;
-	  }
-	  if (pMMGObj2.pMMGData.pressureKPa > 150 || pMMGObj2.pMMGData.pressureKPa < 90) {
-		  totalpMMG.pMMG_err.err2++;
-		  totalpMMG.pMMG_err.totalErr++;
-	  }
-	  if (pMMGObj3.pMMGData.pressureKPa > 150 || pMMGObj3.pMMGData.pressureKPa < 90) {
-		  totalpMMG.pMMG_err.err3++;
-		  totalpMMG.pMMG_err.totalErr++;
-	  }
-	  if (pMMGObj4.pMMGData.pressureKPa > 150 || pMMGObj4.pMMGData.pressureKPa < 90) {
-		  totalpMMG.pMMG_err.err4++;
-		  totalpMMG.pMMG_err.totalErr++;
-	  }
-	  if (pMMGObj5.pMMGData.pressureKPa > 150 || pMMGObj5.pMMGData.pressureKPa < 90) {
-		  totalpMMG.pMMG_err.err5++;
-		  totalpMMG.pMMG_err.totalErr++;
-	  }
-	  if (pMMGObj6.pMMGData.pressureKPa > 150 || pMMGObj6.pMMGData.pressureKPa < 90) {
-		  totalpMMG.pMMG_err.err6++;
-		  totalpMMG.pMMG_err.totalErr++;
-	  }
-	  if (pMMGObj7.pMMGData.pressureKPa > 150 || pMMGObj7.pMMGData.pressureKPa < 90) {
-		  totalpMMG.pMMG_err.err7++;
-		  totalpMMG.pMMG_err.totalErr++;
-	  }
-	  if (pMMGObj8.pMMGData.pressureKPa > 150 || pMMGObj8.pMMGData.pressureKPa < 90) {
-		  totalpMMG.pMMG_err.err8++;
-		  totalpMMG.pMMG_err.totalErr++;
-	  }
 
     /* USER CODE END WHILE */
 
@@ -334,50 +267,73 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-//	if (htim == &htim3) {
-//		DWT->CYCCNT = 0;
-//		start = DWT->CYCCNT / 170;
-//		pMMG_Update_multiple_3(&pMMGObj1, &pMMGObj4, &pMMGObj7);
-//		pMMG_Update_multiple_3(&pMMGObj2, &pMMGObj5, &pMMGObj8);
-//		pMMG_Update_multiple_2(&pMMGObj3, &pMMGObj6);
-//
-//
-//		codeTime = DWT->CYCCNT / 170 - start;
-//		totalCodeTime += (float)codeTime / 1000000;
-//
-//		if (pMMGObj1.pMMGData.pressureKPa > 140 || pMMGObj1.pMMGData.pressureKPa < 90) {
-//			errCnt1++;
-//			totalErrCnt++;
-//		}
-//		if (pMMGObj2.pMMGData.pressureKPa > 140 || pMMGObj2.pMMGData.pressureKPa < 90) {
-//			errCnt2++;
-//			totalErrCnt++;
-//		}
-//		if (pMMGObj3.pMMGData.pressureKPa > 140 || pMMGObj3.pMMGData.pressureKPa < 90) {
-//			errCnt3++;
-//			totalErrCnt++;
-//		}
-//		if (pMMGObj4.pMMGData.pressureKPa > 140 || pMMGObj4.pMMGData.pressureKPa < 90) {
-//			errCnt4++;
-//			totalErrCnt++;
-//		}
-//		if (pMMGObj5.pMMGData.pressureKPa > 140 || pMMGObj5.pMMGData.pressureKPa < 90) {
-//			errCnt5++;
-//			totalErrCnt++;
-//		}
-//		if (pMMGObj6.pMMGData.pressureKPa > 140 || pMMGObj6.pMMGData.pressureKPa < 90) {
-//			errCnt6++;
-//			totalErrCnt++;
-//		}
-//		if (pMMGObj7.pMMGData.pressureKPa > 140 || pMMGObj7.pMMGData.pressureKPa < 90) {
-//			errCnt7++;
-//			totalErrCnt++;
-//		}
-//	  	if (pMMGObj8.pMMGData.pressureKPa > 140 || pMMGObj8.pMMGData.pressureKPa < 90) {
-//	  		errCnt8++;
-//		  	totalErrCnt++;
-//	  	}
-//	}
+	if (htim == &htim3) {
+		DWT->CYCCNT = 0;
+		start = DWT->CYCCNT / 170;
+
+
+		/* (4) 8-pMMG measurement with Extended G474RE Board by 3-phases [ 4.22ms = (1.220ms + 3*70us)*2 + (1.220ms + 2*70us) ] */
+		pMMG_Update_multiple_3(&pMMGObj1, &pMMGObj4, &pMMGObj7);
+		pMMG_Update_multiple_3(&pMMGObj2, &pMMGObj5, &pMMGObj8);
+		pMMG_Update_multiple_2(&pMMGObj3, &pMMGObj6);
+
+		// Mapping //
+		totalpMMG.pMMG_press.pMMG1_press = pMMGObj1.pMMGData.pressureKPa;
+		totalpMMG.pMMG_press.pMMG2_press = pMMGObj2.pMMGData.pressureKPa;
+		totalpMMG.pMMG_press.pMMG3_press = pMMGObj3.pMMGData.pressureKPa;
+		totalpMMG.pMMG_press.pMMG4_press = pMMGObj4.pMMGData.pressureKPa;
+		totalpMMG.pMMG_press.pMMG5_press = pMMGObj5.pMMGData.pressureKPa;
+		totalpMMG.pMMG_press.pMMG6_press = pMMGObj6.pMMGData.pressureKPa;
+		totalpMMG.pMMG_press.pMMG7_press = pMMGObj7.pMMGData.pressureKPa;
+		totalpMMG.pMMG_press.pMMG8_press = pMMGObj8.pMMGData.pressureKPa;
+
+		totalpMMG.pMMG_temp.pMMG1_temp = pMMGObj1.pMMGData.temperatureC;
+		totalpMMG.pMMG_temp.pMMG2_temp = pMMGObj2.pMMGData.temperatureC;
+		totalpMMG.pMMG_temp.pMMG3_temp = pMMGObj3.pMMGData.temperatureC;
+		totalpMMG.pMMG_temp.pMMG4_temp = pMMGObj4.pMMGData.temperatureC;
+		totalpMMG.pMMG_temp.pMMG5_temp = pMMGObj5.pMMGData.temperatureC;
+		totalpMMG.pMMG_temp.pMMG6_temp = pMMGObj6.pMMGData.temperatureC;
+		totalpMMG.pMMG_temp.pMMG7_temp = pMMGObj7.pMMGData.temperatureC;
+		totalpMMG.pMMG_temp.pMMG8_temp = pMMGObj8.pMMGData.temperatureC;
+		///////////////////////////////////////////////////////////////////////////////
+
+		codeTime = DWT->CYCCNT / 170 - start;
+		totalCodeTime += (float)codeTime / 1000000;
+
+		if (pMMGObj1.pMMGData.pressureKPa > 150 || pMMGObj1.pMMGData.pressureKPa < 90) {
+			totalpMMG.pMMG_err.err1++;
+			totalpMMG.pMMG_err.totalErr++;
+		}
+		if (pMMGObj2.pMMGData.pressureKPa > 150 || pMMGObj2.pMMGData.pressureKPa < 90) {
+			totalpMMG.pMMG_err.err2++;
+			totalpMMG.pMMG_err.totalErr++;
+		}
+		if (pMMGObj3.pMMGData.pressureKPa > 150 || pMMGObj3.pMMGData.pressureKPa < 90) {
+			totalpMMG.pMMG_err.err3++;
+			totalpMMG.pMMG_err.totalErr++;
+		}
+		if (pMMGObj4.pMMGData.pressureKPa > 150 || pMMGObj4.pMMGData.pressureKPa < 90) {
+			totalpMMG.pMMG_err.err4++;
+			totalpMMG.pMMG_err.totalErr++;
+		}
+		if (pMMGObj5.pMMGData.pressureKPa > 150 || pMMGObj5.pMMGData.pressureKPa < 90) {
+			totalpMMG.pMMG_err.err5++;
+			totalpMMG.pMMG_err.totalErr++;
+		}
+		if (pMMGObj6.pMMGData.pressureKPa > 150 || pMMGObj6.pMMGData.pressureKPa < 90) {
+			totalpMMG.pMMG_err.err6++;
+			totalpMMG.pMMG_err.totalErr++;
+		}
+		if (pMMGObj7.pMMGData.pressureKPa > 150 || pMMGObj7.pMMGData.pressureKPa < 90) {
+			totalpMMG.pMMG_err.err7++;
+			totalpMMG.pMMG_err.totalErr++;
+		}
+		if (pMMGObj8.pMMGData.pressureKPa > 150 || pMMGObj8.pMMGData.pressureKPa < 90) {
+			totalpMMG.pMMG_err.err8++;
+			totalpMMG.pMMG_err.totalErr++;
+		}
+
+	}
 }
 /* USER CODE END 4 */
 
