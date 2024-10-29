@@ -116,6 +116,8 @@ pMMG_t totalpMMG;
 
 /* FSR DMA memory */
 uint16_t FSRvalue[2] = {0};		// 0: PA0, 1: PA1
+uint16_t FSR_L = 0; 			// 0: PA0
+uint16_t FSR_R = 0;				// 1: PA1
 
 float start = 0;
 float codeTime = 0;			// usec
@@ -297,8 +299,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		totalpMMG.pMMG_temp.pMMG8_temp = pMMGObj8.pMMGData.temperatureC;
 		///////////////////////////////////////////////////////////////////////////////
 
+
 		codeTime = DWT->CYCCNT / 170 - start;
 		totalCodeTime += (float)codeTime / 1000000;
+
 
 		if (pMMGObj1.pMMGData.pressureKPa > 150 || pMMGObj1.pMMGData.pressureKPa < 90) {
 			totalpMMG.pMMG_err.err1++;
@@ -333,6 +337,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 			totalpMMG.pMMG_err.totalErr++;
 		}
 
+
+		/* Check FSR values */
+		FSR_L = FSRvalue[0];
+		FSR_R = FSRvalue[1];
 	}
 }
 /* USER CODE END 4 */
