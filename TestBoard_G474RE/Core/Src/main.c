@@ -47,15 +47,17 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint16_t FSRvalue[8] = {0};		// 0: PA0, 1: PA1, 2: PA2, 3: PA3, 4: PB14, 5: PC0, 6: PC1, 7: PC2
-uint16_t FSR_1 = 0; 			// 0: PA0
-uint16_t FSR_2 = 0;				// 1: PA1
-uint16_t FSR_3 = 0; 			// 2: PA2
-uint16_t FSR_4 = 0;				// 3: PA3
-uint16_t FSR_5 = 0; 			// 4: PB14
-uint16_t FSR_6 = 0;				// 5: PC0
-uint16_t FSR_7 = 0; 			// 6: PC1
-uint16_t FSR_8 = 0;				// 7: PC2
+uint16_t FSRvalue_adc_1[5] = {0};		// 0: PA0, 1: PA1, 3: PB0, 4: PC1, 5: PC0
+uint16_t FSRvalue_adc_2[3] = {0};		// 2: PA4, 6: PA5, 7: PA6
+
+uint16_t FSR_1 = 0; 					// 0: PA0
+uint16_t FSR_2 = 0;						// 1: PA1
+uint16_t FSR_3 = 0; 					// 2: PA4
+uint16_t FSR_4 = 0;						// 3: PB0
+uint16_t FSR_5 = 0; 					// 4: PC1
+uint16_t FSR_6 = 0;						// 5: PC0
+uint16_t FSR_7 = 0; 					// 6: PA5
+uint16_t FSR_8 = 0;						// 7: PA6
 
 float start = 0;
 float codeTime = 0;				// usec
@@ -108,6 +110,7 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM3_Init();
   MX_LPUART1_UART_Init();
+  MX_ADC2_Init();
   /* USER CODE BEGIN 2 */
   CoreDebug->DEMCR &= ~CoreDebug_DEMCR_TRCENA_Msk;
   CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
@@ -117,7 +120,9 @@ int main(void)
 
   /* ---------------------- Start FSR ADC read ------------------------- */
   HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
-  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)FSRvalue, 8);
+  HAL_ADCEx_Calibration_Start(&hadc2, ADC_SINGLE_ENDED);
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)FSRvalue_adc_1, 5);
+  HAL_ADC_Start_DMA(&hadc2, (uint32_t*)FSRvalue_adc_2, 3);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -127,14 +132,14 @@ int main(void)
 	  DWT->CYCCNT = 0;
       start = DWT->CYCCNT / 170;
 	  /* Check FSR values */
-	  FSR_1 = FSRvalue[0];
-      FSR_2 = FSRvalue[1];
-	  FSR_3 = FSRvalue[2];
-      FSR_4 = FSRvalue[3];
-	  FSR_5 = FSRvalue[4];
-      FSR_6 = FSRvalue[5];
-	  FSR_7 = FSRvalue[6];
-      FSR_8 = FSRvalue[7];
+	  FSR_1 = FSRvalue_adc_1[0];
+      FSR_2 = FSRvalue_adc_1[1];
+	  FSR_3 = FSRvalue_adc_2[0];
+      FSR_4 = FSRvalue_adc_1[2];
+	  FSR_5 = FSRvalue_adc_1[3];
+      FSR_6 = FSRvalue_adc_1[4];
+	  FSR_7 = FSRvalue_adc_2[1];
+      FSR_8 = FSRvalue_adc_2[2];
 
 	  codeTime = DWT->CYCCNT / 170 - start;
 
