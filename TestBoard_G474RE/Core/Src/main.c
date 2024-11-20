@@ -18,7 +18,8 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "usart.h"
+#include "adc.h"
+#include "dma.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -44,6 +45,18 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+uint16_t FSRvalue[8] = {0};		// 0: PA0, 1: PA1, 2: PA2, 3: PA3, 4: PB14, 5: PC0, 6: PC1, 7: PC2
+uint16_t FSR_1 = 0; 			// 0: PA0
+uint16_t FSR_2 = 0;				// 1: PA1
+uint16_t FSR_3 = 0; 			// 2: PA2
+uint16_t FSR_4 = 0;				// 3: PA3
+uint16_t FSR_5 = 0; 			// 4: PB14
+uint16_t FSR_6 = 0;				// 5: PC0
+uint16_t FSR_7 = 0; 			// 6: PC1
+uint16_t FSR_8 = 0;				// 7: PC2
+
+float start = 0;
+float codeTime = 0;			// usec
 
 /* USER CODE END PV */
 
@@ -86,15 +99,38 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_LPUART1_UART_Init();
+  MX_DMA_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
+  CoreDebug->DEMCR &= ~CoreDebug_DEMCR_TRCENA_Msk;
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->CTRL &= ~DWT_CTRL_CYCCNTENA_Msk;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+  DWT->CYCCNT = 0;
 
+  /* ---------------------- Start FSR ADC read ------------------------- */
+  HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)FSRvalue, 8);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  DWT->CYCCNT = 0;
+      start = DWT->CYCCNT / 170;
+	  /* Check FSR values */
+	  FSR_1 = FSRvalue[0];
+      FSR_2 = FSRvalue[1];
+	  FSR_3 = FSRvalue[2];
+      FSR_4 = FSRvalue[3];
+	  FSR_5 = FSRvalue[4];
+      FSR_6 = FSRvalue[5];
+	  FSR_7 = FSRvalue[6];
+      FSR_8 = FSRvalue[7];
+
+	  codeTime = DWT->CYCCNT / 170 - start;
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
