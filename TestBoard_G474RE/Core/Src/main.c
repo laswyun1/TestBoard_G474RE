@@ -20,6 +20,8 @@
 #include "main.h"
 #include "adc.h"
 #include "dma.h"
+#include "usart.h"
+#include "tim.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -56,14 +58,17 @@ uint16_t FSR_7 = 0; 			// 6: PC1
 uint16_t FSR_8 = 0;				// 7: PC2
 
 float start = 0;
-float codeTime = 0;			// usec
+float codeTime = 0;				// usec
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+int _write(int file, char* ptr, int len){
+	HAL_UART_Transmit(&hlpuart1, (uint16_t*) ptr, len, HAL_MAX_DELAY);
+	return len;
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -101,6 +106,8 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_ADC1_Init();
+  MX_TIM3_Init();
+  MX_LPUART1_UART_Init();
   /* USER CODE BEGIN 2 */
   CoreDebug->DEMCR &= ~CoreDebug_DEMCR_TRCENA_Msk;
   CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
