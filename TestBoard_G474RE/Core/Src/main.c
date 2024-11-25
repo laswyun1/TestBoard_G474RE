@@ -48,6 +48,7 @@
 /* USER CODE BEGIN PV */
 uint16_t pMMG_val[1] = {0};
 uint8_t startADC = 0;
+uint16_t pMMG = 0;
 
 float start = 0;
 float codeTime = 0;			// usec
@@ -112,6 +113,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+//	  pMMG = pMMG_val[0];
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
