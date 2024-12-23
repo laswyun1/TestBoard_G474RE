@@ -53,7 +53,7 @@ uint16_t EMG_1 = 0;
 float start = 0;
 float codeTime = 0;
 float totalCodeTime = 0;
-
+uint32_t a = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -119,6 +119,7 @@ int main(void)
 	  start = DWT->CYCCNT / 170;
 
 	  EMG_1 = EMGval[0];
+	  a++;
 
 	  codeTime = DWT->CYCCNT / 170 - start;
     /* USER CODE END WHILE */
@@ -175,10 +176,6 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
-void HAL_TIM_ElapsedCallback() {
-
-}
 
 /* USER CODE END 4 */
 
