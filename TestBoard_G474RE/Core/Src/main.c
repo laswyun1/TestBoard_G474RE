@@ -47,9 +47,10 @@
 
 /* USER CODE BEGIN PV */
 
-uint16_t EMGval[1] = {0};		// PA0 : EMG1
+uint16_t EMGval[2] = {0};		// PA0: EMG1,  PA1: EMG2
+uint16_t EMG_1 = 0;				// Raw Data
+uint16_t EMG_2 = 0;				// Envelope
 
-uint16_t EMG_1 = 0;
 float start = 0;
 float codeTime = 0;
 float totalCodeTime = 0;
@@ -73,6 +74,7 @@ void SystemClock_Config(void);
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -108,7 +110,7 @@ int main(void)
 
   /* ------------------------------ Start EMG ADC Read ------------------------------ */
   HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
-  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)EMGval, 1);
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)EMGval, 2);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -119,6 +121,7 @@ int main(void)
 	  start = DWT->CYCCNT / 170;
 
 	  EMG_1 = EMGval[0];
+	  EMG_2 = EMGval[1];
 	  a++;
 
 	  codeTime = DWT->CYCCNT / 170 - start;
