@@ -5,6 +5,8 @@
  *      Author: INVINCIBLE
  */
 
+/* OSTSen-30102 */
+
 #ifndef INC_SPO2_H_
 #define INC_SPO2_H_
 
@@ -150,12 +152,44 @@
 #define MAX30102_SLOT_IR_LED						0x02U
 #define MAX30102_SLOT_RED_PILOT						0x05U
 #define MAX30102_SLOT_IR_PILOT						0x06U
+
+#define MAX_30102_EXPECTEDPARTID					0x15U
 // -------------------------------------------------------------------------------------------------------- //
+
+#define READ_DATA_LENGTH_MAX		4
+#define WRITE_DATA_LENGTH_MAX		1
+#define I2C_TIMEOUT					1
+#define I2C_MEM_ADD_SIZE			1
+
+
+typedef enum _SPO2_State_t {
+	SPO2_STATE_OK,
+	SPO2_STATE_ERROR
+} SPO2_State_t;
+
+
+
 
 
 typedef struct _SPO2_Obj_t {
 	I2C_HandleTypeDef* SPO2_i2c;
+	uint8_t devReadAddr;
+	uint8_t devWriteAddr;
+} SPO2_Obj_t;
 
-};
+
+
+/* Declaration of Functions */
+SPO2_State_t SPO2_Init(SPO2_Obj_t* spo2_Obj, I2C_HandleTypeDef* hi2c);
+uint8_t WriteReg(I2C_HandleTypeDef* hi2c, uint8_t devWriteAddr, uint8_t regAddr);
+uint8_t ReadReg(I2C_HandleTypeDef* hi2c, uint8_t devReadAddr, uint8_t regAddr, uint8_t* readBuff, uint8_t size);
+uint8_t ReadPartID(SPO2_Obj_t* spo2_Obj);
+uint8_t ReadRevisionID(SPO2_Obj_t* spo2_Obj);
+
+
+
+
+
+
 
 #endif /* INC_SPO2_H_ */
