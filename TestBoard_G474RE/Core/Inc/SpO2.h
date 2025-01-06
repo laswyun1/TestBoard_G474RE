@@ -151,6 +151,7 @@
 #define MAX30102_SLOT_NONE							0x00U
 #define MAX30102_SLOT_RED_LED						0x01U
 #define MAX30102_SLOT_IR_LED						0x02U
+#define MAX30102_SLOT_GREEN_LED						0x03U
 #define MAX30102_SLOT_RED_PILOT						0x05U
 #define MAX30102_SLOT_IR_PILOT						0x06U
 
@@ -158,7 +159,7 @@
 // -------------------------------------------------------------------------------------------------------- //
 
 #define READ_DATA_LENGTH_MAX		32
-#define WRITE_DATA_LENGTH_MAX		32
+#define WRITE_DATA_LENGTH_MAX		1
 #define I2C_TIMEOUT					1
 #define I2C_MEM_ADD_SIZE			1
 #define I2C_BUFFER_LENGTH 			32
@@ -210,14 +211,28 @@ typedef enum _SPO2_ADCrange_t {
 	SPO2_ADCRANGE_14bit
 } SPO2_ADCrange_t;
 
+typedef enum _SPO2_CurrAmp_t {
+	SPO2_CURRAMP_0,
+	SPO2_CURRAMP_0p2,
+	SPO2_CURRAMP_0p4,
+	SPO2_CURRAMP_3p1,
+	SPO2_CURRAMP_6p4,
+	SPO2_CURRAMP_12p5,
+	SPO2_CURRAMP_25p4,
+	SPO2_CURRAMP_50
+} SPO2_CurrAmp_t;
+
 typedef struct _SPO2_Obj_t {
 	I2C_HandleTypeDef* SPO2_i2c;
 	uint8_t devReadAddr;
 	uint8_t devWriteAddr;
 
+	uint8_t activeLEDNum;
+
 	uint32_t RED[STORAGE_SIZE];
 	uint32_t IR[STORAGE_SIZE];
 	uint32_t GREEN[STORAGE_SIZE];
+
 	uint8_t head;
 	uint8_t tail;
 } SPO2_Obj_t;
@@ -242,9 +257,10 @@ uint8_t SPO2_GetWritePtr(SPO2_Obj_t* spo2_Obj);
 uint8_t SPO2_GetReadPtr(SPO2_Obj_t* spo2_Obj);
 uint8_t SPO2_ReadPartID(SPO2_Obj_t* spo2_Obj);
 uint8_t SPO2_ReadRevisionID(SPO2_Obj_t* spo2_Obj);
-void SPO2_Setup(SPO2_Obj_t* spo2_Obj, SPO2_SampleAvg_t sampleAvg, SPO2_LEDMode_t LEDMode, SPO2_ADCrange_t ADCrange, SPO2_SampleRate_t sampleRate, SPO2_PulseWidth_t pulseWidth, uint8_t powerLevel);
+void SPO2_Setup(SPO2_Obj_t* spo2_Obj, SPO2_SampleAvg_t sampleAvg, SPO2_LEDMode_t LEDMode, SPO2_ADCrange_t ADCrange, SPO2_SampleRate_t sampleRate, SPO2_PulseWidth_t pulseWidth, SPO2_CurrAmp_t powerLevel);
 uint32_t SPO2_GetRED(SPO2_Obj_t* spo2_Obj);
 uint32_t SPO2_GetIR(SPO2_Obj_t* spo2_Obj);
+uint32_t SPO2_GetGREEN(SPO2_Obj_t* spo2_Obj);
 uint16_t SPO2_Check(SPO2_Obj_t* spo2_Obj);
 uint8_t SPO2_SafeCheck(SPO2_Obj_t* spo2_Obj, uint32_t timeOut);
 void SPO2_BitMask(SPO2_Obj_t* spo2_Obj, uint8_t regAddr, uint8_t mask, uint8_t setBit);

@@ -48,6 +48,22 @@
 /* USER CODE BEGIN PV */
 SPO2_Obj_t spo2Obj1;
 uint8_t state1 = 0;
+
+
+
+
+
+
+/* For Debug */
+typedef struct _Pulse_three {
+	uint32_t RED;
+	uint32_t IR;
+	uint32_t GREEN;
+} Pulse_three;
+
+Pulse_three pulseObj;
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -101,12 +117,16 @@ int main(void)
   DWT->CYCCNT = 0;
 
   state1 = SPO2_Init(&spo2Obj1, &hi2c3);
+  SPO2_Setup(&spo2Obj1, SPO2_SAMPLEAVG_4, SPO2_LEDMODE_MULTILED, SPO2_ADCRANGE_12bit, SPO2_SAMPLERATE_400, SPO2_PULSEWIDTH_411, SPO2_CURRAMP_6p4);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  pulseObj.RED = SPO2_GetRED(&spo2Obj1);
+	  pulseObj.IR = SPO2_GetIR(&spo2Obj1);
+	  pulseObj.GREEN = SPO2_GetGREEN(&spo2Obj1);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

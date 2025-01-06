@@ -11,7 +11,6 @@
 static uint8_t I2CRxData[READ_DATA_LENGTH_MAX] = {0};
 static uint8_t I2CTxData[WRITE_DATA_LENGTH_MAX] = {0};
 float sysMHz = 170;		// Change this value according to MCU
-uint8_t activeLEDNum = 0;
 
 
 /* Initialize the sensor */
@@ -234,7 +233,7 @@ uint8_t SPO2_ReadRevisionID(SPO2_Obj_t* spo2_Obj)
 
 
 /* Setup the sensor before the starting of reading */
-void SPO2_Setup(SPO2_Obj_t* spo2_Obj, SPO2_SampleAvg_t sampleAvg, SPO2_LEDMode_t LEDMode, SPO2_ADCrange_t ADCrange, SPO2_SampleRate_t sampleRate, SPO2_PulseWidth_t pulseWidth, uint8_t powerLevel)
+void SPO2_Setup(SPO2_Obj_t* spo2_Obj, SPO2_SampleAvg_t sampleAvg, SPO2_LEDMode_t LEDMode, SPO2_ADCrange_t ADCrange, SPO2_SampleRate_t sampleRate, SPO2_PulseWidth_t pulseWidth, SPO2_CurrAmp_t powerLevel)
 {
 	SPO2_SoftReset(spo2_Obj);
 
@@ -270,19 +269,19 @@ void SPO2_Setup(SPO2_Obj_t* spo2_Obj, SPO2_SampleAvg_t sampleAvg, SPO2_LEDMode_t
 
 	/* ------------------------------ Mode Configuration ------------------------------ */
 	if (LEDMode == SPO2_LEDMODE_MULTILED) {
-		activeLEDNum = 3;
+		spo2_Obj->activeLEDNum = 3;
 		SPO2_SetLEDMode(spo2_Obj, MAX30102_MODE_MULTILED);
 	}
 	else if (LEDMode == SPO2_LEDMODE_REDIRONLY) {
-		activeLEDNum = 2;
+		spo2_Obj->activeLEDNum = 2;
 		SPO2_SetLEDMode(spo2_Obj, MAX30102_MODE_REDIRONLY_SPO2);
 	}
 	else if (LEDMode == SPO2_LEDMODE_REDONLY) {
-		activeLEDNum = 1;
+		spo2_Obj->activeLEDNum = 1;
 		SPO2_SetLEDMode(spo2_Obj, MAX30102_MODE_REDONLY_HR);
 	}
 	else {
-		activeLEDNum = 1;
+		spo2_Obj->activeLEDNum = 1;
 		SPO2_SetLEDMode(spo2_Obj, MAX30102_MODE_REDONLY_HR);
 	}
 	/* -------------------------------------------------------------------------------- */
@@ -365,16 +364,49 @@ void SPO2_Setup(SPO2_Obj_t* spo2_Obj, SPO2_SampleAvg_t sampleAvg, SPO2_LEDMode_t
 	 	   powerLevel = 0x1F, 6.4mA - Presence detection of ~8 inch
 		   powerLevel = 0x7F, 25.4mA - Presence detection of ~8 inch
 		   powerLevel = 0xFF, 50.0mA - Presence detection of ~12 inch */
-	SPO2_SetPulseAmpRed(spo2_Obj, powerLevel);
-	SPO2_SetPulseAmpIR(spo2_Obj, powerLevel);
-	SPO2_SetPulseAmpProximity(spo2_Obj, powerLevel);
+
+	uint8_t powerCmd = 0x00U;
+
+	if (powerLevel == SPO2_CURRAMP_0) {
+		powerCmd = 0x00U;
+	}
+	else if (powerLevel == SPO2_CURRAMP_0p2) {
+		powerCmd = 0x01U;
+	}
+	else if (powerLevel == SPO2_CURRAMP_0p4) {
+		powerCmd = 0x02U;
+	}
+	else if (powerLevel == SPO2_CURRAMP_3p1) {
+		powerCmd = 0x0FU;
+	}
+	else if (powerLevel == SPO2_CURRAMP_6p4) {
+		powerCmd = 0x1FU;
+	}
+	else if (powerLevel == SPO2_CURRAMP_12p5) {
+		powerCmd = 0x3FU;
+	}
+	else if (powerLevel == SPO2_CURRAMP_25p4) {
+		powerCmd = 0x7FU;
+	}
+	else if (powerLevel == SPO2_CURRAMP_50) {
+		powerCmd = 0xFFU;
+	}
+	else {
+		powerCmd = 0x1FU;
+	}
+	SPO2_SetPulseAmpRed(spo2_Obj, powerCmd);
+	SPO2_SetPulseAmpIR(spo2_Obj, powerCmd);
+	SPO2_SetPulseAmpProximity(spo2_Obj, powerCmd);
 	/* -------------------------------------------------------------------------------- */
 
 
-	/* ---------- Multi-LED Mode Configuration (Enable the reading of 2 LEDs) --------- */
+	/* ---------- Multi-LED Mode Configuration (Enable the reading of LEDs) --------- */
 	SPO2_EnableSlot(spo2_Obj, 1, MAX30102_SLOT_RED_LED);
-	if (LEDMode >= 1) {
+	if (spo2_Obj->activeLEDNum > 1) {
 		SPO2_EnableSlot(spo2_Obj, 2, MAX30102_SLOT_IR_LED);
+	}
+	if (spo2_Obj->activeLEDNum > 2) {
+		SPO2_EnableSlot(spo2_Obj, 3, MAX30102_SLOT_GREEN_LED);
 	}
 	/* -------------------------------------------------------------------------------- */
 
@@ -389,10 +421,10 @@ void SPO2_Setup(SPO2_Obj_t* spo2_Obj, SPO2_SampleAvg_t sampleAvg, SPO2_LEDMode_t
 uint32_t SPO2_GetRED(SPO2_Obj_t* spo2_Obj)
 {
 	// Check the sensor for new data for 250,000usec(=250ms)
-	if(SPO2_SafeCheck(spo2_Obj, 250000))
+	if (SPO2_SafeCheck(spo2_Obj, 250000))
 		return (spo2_Obj->RED[spo2_Obj->head]);
 	else
-		return(0); // Sensor failed to find new data
+		return 0; // Sensor failed to find new data
 }
 
 
@@ -400,10 +432,21 @@ uint32_t SPO2_GetRED(SPO2_Obj_t* spo2_Obj)
 uint32_t SPO2_GetIR(SPO2_Obj_t* spo2_Obj)
 {
 	//Check the sensor for new data for 250,000usec(=250ms)
-	if(SPO2_SafeCheck(spo2_Obj, 250000))
+	if (SPO2_SafeCheck(spo2_Obj, 250000))
 		return (spo2_Obj->IR[spo2_Obj->head]);
 	else
-		return(0); // Sensor failed to find new data
+		return 0; // Sensor failed to find new data
+}
+
+
+/* Take the recent GREEN value(for MAX30105) -> MAX30102 does NOT have GREEN */
+uint32_t SPO2_GetGREEN(SPO2_Obj_t* spo2_Obj)
+{
+	//Check the sensor for new data for 250,000usec(=250ms)
+	if (SPO2_SafeCheck(spo2_Obj, 250000))
+		return (spo2_Obj->GREEN[spo2_Obj->head]);
+	else
+		return 0; // Sensor failed to find new data
 }
 
 
@@ -421,21 +464,21 @@ uint16_t SPO2_Check(SPO2_Obj_t* spo2_Obj)
 			sampleNum += 32;
 		}
 
-		int bytesLeftToRead = sampleNum * activeLEDNum * 3;
+		int bytesLeftToRead = sampleNum * (spo2_Obj->activeLEDNum) * 3;
 
 		while (bytesLeftToRead > 0) {
 			int toGet = bytesLeftToRead;
 
 			if (toGet > I2C_BUFFER_LENGTH) {
-				toGet = I2C_BUFFER_LENGTH - (I2C_BUFFER_LENGTH % (activeLEDNum * 3));
+				toGet = I2C_BUFFER_LENGTH - (I2C_BUFFER_LENGTH % (spo2_Obj->activeLEDNum * 3));
 			}
 
 			bytesLeftToRead -= toGet;
 			SPO2_ReadReg(spo2_Obj->SPO2_i2c, spo2_Obj->devWriteAddr, MAX30102_FIFO_DATA_REGISTER, I2CRxData, toGet);
 
-			while (toGet > 0) {
-				static uint8_t cursor = 0;
+			uint8_t cursor = 0;
 
+			while (toGet > 0) {
 				spo2_Obj->head++;
 				spo2_Obj->head %= STORAGE_SIZE;
 
@@ -444,40 +487,40 @@ uint16_t SPO2_Check(SPO2_Obj_t* spo2_Obj)
 
 				// Burst Read 3 bytes for RED //
 				temp[3] = 0;
-				temp[2] = I2CRxData[cursor];
-				temp[1] = I2CRxData[cursor+1];
-				temp[0] = I2CRxData[cursor+1];
+				temp[2] = I2CRxData[cursor++];
+				temp[1] = I2CRxData[cursor++];
+				temp[0] = I2CRxData[cursor++];
 
 				memcpy(&tempLong, temp, sizeof(tempLong));
 				tempLong &= 0x3FFFF;	// use only 18-bit
 
 				spo2_Obj->RED[spo2_Obj->head] = tempLong;
 
-				if (activeLEDNum > 1) {
+				if (spo2_Obj->activeLEDNum > 1) {
 					// Burst Read 3 bytes for IR //
 					temp[3] = 0;
-					temp[2] = I2CRxData[cursor+1];
-					temp[1] = I2CRxData[cursor+1];
-					temp[0] = I2CRxData[cursor+1];
+					temp[2] = I2CRxData[cursor++];
+					temp[1] = I2CRxData[cursor++];
+					temp[0] = I2CRxData[cursor++];
 
 					memcpy(&tempLong, temp, sizeof(tempLong));
 					tempLong &= 0x3FFFF;	// use only 18-bit
 					spo2_Obj->IR[spo2_Obj->head] = tempLong;
 				}
 
-				if (activeLEDNum > 2) {
+				if (spo2_Obj->activeLEDNum > 2) {
 					// Burst Read 3 bytes for GREEN //
 					temp[3] = 0;
-					temp[2] = I2CRxData[cursor+1];
-					temp[1] = I2CRxData[cursor+1];
-					temp[0] = I2CRxData[cursor+1];
+					temp[2] = I2CRxData[cursor++];
+					temp[1] = I2CRxData[cursor++];
+					temp[0] = I2CRxData[cursor++];
 
 					memcpy(&tempLong, temp, sizeof(tempLong));
 					tempLong &= 0x3FFFF;	// use only 18-bit
 					spo2_Obj->GREEN[spo2_Obj->head] = tempLong;
 				}
 
-				toGet -= activeLEDNum * 3;
+				toGet -= spo2_Obj->activeLEDNum * 3;
 			}
 		}
 	}
