@@ -54,7 +54,7 @@ uint8_t state1 = 0;
 
 
 
-/* For Debug */
+//////////////* For Debug *////////////////
 typedef struct _Pulse_three {
 	uint32_t RED;
 	uint32_t IR;
@@ -62,7 +62,7 @@ typedef struct _Pulse_three {
 } Pulse_three;
 
 Pulse_three pulseObj;
-
+/////////////////////////////////////////
 
 /* USER CODE END PV */
 
@@ -118,6 +118,7 @@ int main(void)
 
   state1 = SPO2_Init(&spo2Obj1, &hi2c3);
   SPO2_Setup(&spo2Obj1, SPO2_SAMPLEAVG_4, SPO2_LEDMODE_MULTILED, SPO2_ADCRANGE_12bit, SPO2_SAMPLERATE_400, SPO2_PULSEWIDTH_411, SPO2_CURRAMP_6p4);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
