@@ -7,10 +7,17 @@
 
 #include "SpO2.h"
 
-/* I2C Received Data */
+/* For I2C Receive/Transmit */
 static uint8_t I2CRxData[READ_DATA_LENGTH_MAX] = {0};
 static uint8_t I2CTxData[WRITE_DATA_LENGTH_MAX] = {0};
+
+/* For DWT clock check */
 float sysMHz = 170;		// Change this value according to MCU
+
+/* For Heart Rate */
+int
+
+
 
 
 /* Initialize the sensor */
@@ -28,6 +35,22 @@ SPO2_State_t SPO2_Init(SPO2_Obj_t* spo2_Obj, I2C_HandleTypeDef* hi2c)
 
 	return SPO2_STATE_OK;
 }
+
+/*--------------------------------------------------------------------------- Interrupt Configuration ---------------------------------------------------------------------------*/
+/* Enable the temperature ready interrupt */
+void SPO2_EnableDIETEMPRDY(SPO2_Obj_t* spo2_Obj)
+{
+	SPO2_BitMask(spo2_Obj, MAX30102_INTERRUPT_ENABLE_2, MAX30102_INTERRUPT_DIE_TEMP_RDY_MASK, MAX30102_INTERRUPT_DIE_TEMP_RDY_ENABLE);
+}
+
+
+/* Enable the temperature ready interrupt */
+void SPO2_DisableDIETEMPRDY(SPO2_Obj_t* spo2_Obj)
+{
+	SPO2_BitMask(spo2_Obj, MAX30102_INTERRUPT_ENABLE_2, MAX30102_INTERRUPT_DIE_TEMP_RDY_MASK, MAX30102_INTERRUPT_DIE_TEMP_RDY_DISABLE);
+}
+
+/*--------------------------------------------------------------------------- End of Interrupt CONFIG ----------------------------------------------------------------------------*/
 
 
 /* Reset the sensor */
@@ -99,6 +122,14 @@ void SPO2_SetPulseAmpIR(SPO2_Obj_t* spo2_Obj, uint8_t pulseAmp)
 {
 	I2CTxData[0] = pulseAmp;
 	SPO2_WriteReg(spo2_Obj->SPO2_i2c, spo2_Obj->devWriteAddr, MAX30102_LED2_PULSEAMP, I2CTxData, 1);
+}
+
+
+/* Set the amplitude of GREEN pulse */
+void SPO2_SetPulseAmpGreen(SPO2_Obj_t* spo2_Obj, uint8_t pulseAmp)
+{
+	I2CTxData[0] = pulseAmp;
+	SPO2_WriteReg(spo2_Obj->SPO2_i2c, spo2_Obj->devWriteAddr, MAX30102_LED3_PULSEAMP, I2CTxData, 1);
 }
 
 
@@ -197,6 +228,37 @@ uint8_t SPO2_GetReadPtr(SPO2_Obj_t* spo2_Obj)
 
 	/* Needs error handler */
 	return readPtr;
+}
+
+
+/* Get DIE Temperature */
+void SPO2_ReadTemperature(SPO2_Obj_t* spo2_Obj)
+{
+	// DIE_TEMP_RDY interrupt must be enabled
+
+	I2CTxData[0] = 0x01;
+	SPO2_WriteReg(spo2_Obj->SPO2_i2c, spo2_Obj->devWriteAddr, MAX30102_DIETEMP_CONFIG, I2CTxData, 1);
+
+	float usStart = (float)DWT->CYCCNT / sysMHz;
+	while ( (float)DWT->CYCCNT / sysMHz - usStart < 100000) {
+		SPO2_ReadReg(spo2_Obj->SPO2_i2c, spo2_Obj->devReadAddr, MAX30102_INTERRUPT_STATUS_2, I2CRxData, 1);
+
+		uint8_t interrupt = I2CRxData[0];
+		if ( (interrupt & MAX30102_INTERRUPT_DIE_TEMP_RDY_ENABLE) > 0) {
+			break;
+		}
+
+		HAL_Delay(1);
+	}
+
+	SPO2_ReadReg(spo2_Obj->SPO2_i2c, spo2_Obj->devReadAddr, MAX30102_DIETEMP_INT, I2CRxData, 1);
+	int8_t tempInt = I2CRxData[0];
+
+	SPO2_ReadReg(spo2_Obj->SPO2_i2c, spo2_Obj->devReadAddr, MAX30102_DIETEMP_FRAC, I2CRxData, 1);
+	uint8_t tempFrac = I2CRxData[0];
+
+	spo2_Obj->temperatureC = ( (float)tempInt + ((float)tempFrac * 0.0625) );
+	spo2_Obj->temperatureF = spo2_Obj->temperatureC * 1.8 + 32.0;
 }
 
 
@@ -365,34 +427,34 @@ void SPO2_Setup(SPO2_Obj_t* spo2_Obj, SPO2_SampleAvg_t sampleAvg, SPO2_LEDMode_t
 		   powerLevel = 0x7F, 25.4mA - Presence detection of ~8 inch
 		   powerLevel = 0xFF, 50.0mA - Presence detection of ~12 inch */
 
-	uint8_t powerCmd = 0x00U;
+	uint8_t powerCmd = 0x00;
 
 	if (powerLevel == SPO2_CURRAMP_0) {
-		powerCmd = 0x00U;
+		powerCmd = 0x00;
 	}
 	else if (powerLevel == SPO2_CURRAMP_0p2) {
-		powerCmd = 0x01U;
+		powerCmd = 0x01;
 	}
 	else if (powerLevel == SPO2_CURRAMP_0p4) {
-		powerCmd = 0x02U;
+		powerCmd = 0x02;
 	}
 	else if (powerLevel == SPO2_CURRAMP_3p1) {
-		powerCmd = 0x0FU;
+		powerCmd = 0x0F;
 	}
 	else if (powerLevel == SPO2_CURRAMP_6p4) {
-		powerCmd = 0x1FU;
+		powerCmd = 0x1F;
 	}
 	else if (powerLevel == SPO2_CURRAMP_12p5) {
-		powerCmd = 0x3FU;
+		powerCmd = 0x3F;
 	}
 	else if (powerLevel == SPO2_CURRAMP_25p4) {
-		powerCmd = 0x7FU;
+		powerCmd = 0x7F;
 	}
 	else if (powerLevel == SPO2_CURRAMP_50) {
-		powerCmd = 0xFFU;
+		powerCmd = 0xFF;
 	}
 	else {
-		powerCmd = 0x1FU;
+		powerCmd = 0x1F;
 	}
 	SPO2_SetPulseAmpRed(spo2_Obj, powerCmd);
 	SPO2_SetPulseAmpIR(spo2_Obj, powerCmd);
@@ -580,6 +642,36 @@ uint8_t SPO2_WriteReg(I2C_HandleTypeDef* hi2c, uint8_t devWriteAddr, uint8_t reg
 
 	return state;
 }
+
+
+
+
+
+
+/*---------------------------------------------------------------------------------- [For Heart Rate] ---------------------------------------------------------------------------------- */
+uint8_t SPO2_CheckForBeat(SPO2_Obj_t* spo2_Obj, int32_t sample)
+{
+	uint8_t beatDetected = 0;
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

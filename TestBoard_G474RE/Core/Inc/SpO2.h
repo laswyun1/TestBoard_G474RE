@@ -40,6 +40,7 @@
 #define MAX30102_SPO2_CONFIG						0x0AU
 #define MAX30102_LED1_PULSEAMP						0x0CU
 #define MAX30102_LED2_PULSEAMP						0x0DU
+#define MAX30102_LED3_PULSEAMP						0x0EU			// It is for MAX30105 (No Green LED in MAX30102)
 #define MAX30102_PROXIMITY_PULSEAMP					0x10U
 #define MAX30102_MULTILED_CONTROL_1					0x11U
 #define MAX30102_MULTILED_CONTROL_2					0x12U
@@ -235,11 +236,16 @@ typedef struct _SPO2_Obj_t {
 
 	uint8_t head;
 	uint8_t tail;
+
+	float temperatureC;
+	float temperatureF;
 } SPO2_Obj_t;
 
 
 /* Declaration of Functions */
 SPO2_State_t SPO2_Init(SPO2_Obj_t* spo2_Obj, I2C_HandleTypeDef* hi2c);
+void SPO2_EnableDIETEMPRDY(SPO2_Obj_t* spo2_Obj);
+void SPO2_DisableDIETEMPRDY(SPO2_Obj_t* spo2_Obj);
 void SPO2_SoftReset(SPO2_Obj_t* spo2_Obj);
 void SPO2_SetLEDMode(SPO2_Obj_t* spo2_Obj, uint8_t LEDMode);
 void SPO2_SetADCRange(SPO2_Obj_t* spo2_Obj, uint8_t ADCRange);
@@ -247,6 +253,7 @@ void SPO2_SetSampleRate(SPO2_Obj_t* spo2_Obj, uint8_t sampleRate);
 void SPO2_SetPulseWidth(SPO2_Obj_t* spo2_Obj, uint8_t pulseWidth);
 void SPO2_SetPulseAmpRed(SPO2_Obj_t* spo2_Obj, uint8_t pulseAmp);
 void SPO2_SetPulseAmpIR(SPO2_Obj_t* spo2_Obj, uint8_t pulseAmp);
+void SPO2_SetPulseAmpGreen(SPO2_Obj_t* spo2_Obj, uint8_t pulseAmp);
 void SPO2_SetPulseAmpProximity(SPO2_Obj_t* spo2_Obj, uint8_t pulseAmp);
 void SPO2_EnableSlot(SPO2_Obj_t* spo2_Obj, uint8_t slotNum, uint8_t device);
 void SPO2_SetFIFOAverage(SPO2_Obj_t* spo2_Obj, uint8_t sampleNum);
@@ -255,6 +262,7 @@ void SPO2_EnableFIFORollover(SPO2_Obj_t* spo2_Obj);
 void SPO2_DisbleFIFORollover(SPO2_Obj_t* spo2_Obj);
 uint8_t SPO2_GetWritePtr(SPO2_Obj_t* spo2_Obj);
 uint8_t SPO2_GetReadPtr(SPO2_Obj_t* spo2_Obj);
+void SPO2_ReadTemperature(SPO2_Obj_t* spo2_Obj);
 uint8_t SPO2_ReadPartID(SPO2_Obj_t* spo2_Obj);
 uint8_t SPO2_ReadRevisionID(SPO2_Obj_t* spo2_Obj);
 void SPO2_Setup(SPO2_Obj_t* spo2_Obj, SPO2_SampleAvg_t sampleAvg, SPO2_LEDMode_t LEDMode, SPO2_ADCrange_t ADCrange, SPO2_SampleRate_t sampleRate, SPO2_PulseWidth_t pulseWidth, SPO2_CurrAmp_t powerLevel);

@@ -36,6 +36,18 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+/* Activate one example to test the code */
+//#define EXAMPLE_1			// [Example 1] Get RED/IR/GREEN LEDs
+//#define EXAMPLE_2			// [Example 2] Presence Sensing (Detection of object)
+//#define EXAMPLE_3			// [Example 3] Temperature Sensing
+#define EXAMPLE_4			// [Example 4] Heart Rate Detection
+//#define EXAMPLE_5
+//#define EXAMPLE_6
+//#define EXAMPLE_7
+//#define EXAMPLE_8
+//#define EXAMPLE_9
+
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -49,20 +61,45 @@
 SPO2_Obj_t spo2Obj1;
 uint8_t state1 = 0;
 
+float start = 0;
+float codeTime = 0;
 
-
-
-
-
-//////////////* For Debug *////////////////
-typedef struct _Pulse_three {
+/*------------------------------ For Test the Examples ------------------------------*/
+typedef struct _Ex_Obj_t {
+	/*---------- For [Ex1] ----------*/
 	uint32_t RED;
 	uint32_t IR;
 	uint32_t GREEN;
-} Pulse_three;
+	/*-------------------------------*/
 
-Pulse_three pulseObj;
-/////////////////////////////////////////
+
+	/*---------- For [Ex2] ----------*/
+	uint32_t unblockedValue;	// offset of IR
+	uint32_t samplesTaken;
+	uint8_t sampleFreq;			// Hz
+	int32_t currentDelta;		// Current value of IR (If it detects something, then this value should be high)
+	uint8_t detectObject;		// 1: detect object, 0: does NOT detect anything
+	/*-------------------------------*/
+
+
+	/*---------- For [Ex3] ----------*/
+	float temperatureC;
+	float temperatureF;
+	/*-------------------------------*/
+
+
+	/*---------- For [Ex4] ----------*/
+	uint8_t fingerIsOn;
+	uint8_t heartRate[4];		// You can change the buffer size
+	uint8_t rateSpot;
+	uint32_t lastBeat;
+
+	/*-------------------------------*/
+
+} Ex_Obj_t;
+
+Ex_Obj_t exampleObj;
+/*-----------------------------------------------------------------------------------*/
 
 /* USER CODE END PV */
 
@@ -116,8 +153,34 @@ int main(void)
   DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
   DWT->CYCCNT = 0;
 
+  /*----------------------------- Initialize SPO2 sensor ------------------------------*/
   state1 = SPO2_Init(&spo2Obj1, &hi2c3);
-  SPO2_Setup(&spo2Obj1, SPO2_SAMPLEAVG_4, SPO2_LEDMODE_MULTILED, SPO2_ADCRANGE_12bit, SPO2_SAMPLERATE_400, SPO2_PULSEWIDTH_411, SPO2_CURRAMP_6p4);
+#ifdef EXAMPLE_1
+  SPO2_Setup(&spo2Obj1, SPO2_SAMPLEAVG_4, SPO2_LEDMODE_MULTILED, SPO2_ADCRANGE_12bit, SPO2_SAMPLERATE_400, SPO2_PULSEWIDTH_411, SPO2_CURRAMP_6p4);   // Change the parameters
+#endif
+#ifdef EXAMPLE_2
+  SPO2_Setup(&spo2Obj1, SPO2_SAMPLEAVG_4, SPO2_LEDMODE_REDIRONLY, SPO2_ADCRANGE_11bit, SPO2_SAMPLERATE_400, SPO2_PULSEWIDTH_411, SPO2_CURRAMP_50);   // Use maximum current(50mA) to detect up to 18 inches
+  SPO2_SetPulseAmpRed(&spo2Obj1, 0);		// Turn off RED LED
+  SPO2_SetPulseAmpGreen(&spo2Obj1, 0);		// Turn off GREEN LED (Not necessary for MAX30102 since MAX30102 does NOT have GREEN LED)
+
+  /* Check averaged initial unblocked value of IR (for offset) */
+  exampleObj.unblockedValue = 0;
+  for (uint8_t i = 0; i < 32; i++) {
+	  exampleObj.unblockedValue += SPO2_GetIR(&spo2Obj1);
+  }
+  exampleObj.unblockedValue /= 32;
+#endif
+#ifdef EXAMPLE_3
+  /* Use zero current(0mA) because we don't have to use any LED for temperature sensing -> Turn off ALL LEDs to reduce heat from them (Other settings do not matter) */
+  SPO2_Setup(&spo2Obj1, SPO2_SAMPLEAVG_4, SPO2_LEDMODE_REDONLY, SPO2_ADCRANGE_11bit, SPO2_SAMPLERATE_50, SPO2_PULSEWIDTH_411, SPO2_CURRAMP_0);
+  SPO2_EnableDIETEMPRDY(&spo2Obj1);
+#endif
+#ifdef EXAMPLE_4
+  SPO2_Setup(&spo2Obj1, SPO2_SAMPLEAVG_8, SPO2_LEDMODE_MULTILED, SPO2_ADCRANGE_12bit, SPO2_SAMPLERATE_100, SPO2_PULSEWIDTH_411, SPO2_CURRAMP_50);
+  SPO2_SetPulseAmpRed(&spo2Obj1, 0x0A);
+#endif
+  /*-----------------------------------------------------------------------------------*/
+
 
   /* USER CODE END 2 */
 
@@ -125,9 +188,37 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  pulseObj.RED = SPO2_GetRED(&spo2Obj1);
-	  pulseObj.IR = SPO2_GetIR(&spo2Obj1);
-	  pulseObj.GREEN = SPO2_GetGREEN(&spo2Obj1);
+#ifdef EXAMPLE_1
+	  exampleObj.RED = SPO2_GetRED(&spo2Obj1);
+	  exampleObj.IR = SPO2_GetIR(&spo2Obj1);
+	  exampleObj.GREEN = SPO2_GetGREEN(&spo2Obj1);
+#endif
+#ifdef EXAMPLE_2
+	  DWT->CYCCNT = 0;
+	  start = DWT->CYCCNT / 170;
+	  exampleObj.IR = SPO2_GetIR(&spo2Obj1);
+	  exampleObj.sampleFreq = 1 / ( (DWT->CYCCNT/170 - start)/1000000 );
+
+	  exampleObj.currentDelta = exampleObj.IR - exampleObj.unblockedValue;
+
+	  if (exampleObj.currentDelta > 100) {
+		  exampleObj.detectObject = 1;
+	  }
+	  else {
+		  exampleObj.detectObject = 0;
+	  }
+#endif
+#ifdef EXAMPLE_3
+	  SPO2_ReadTemperature(&spo2Obj1);
+	  exampleObj.temperatureC = spo2Obj1.temperatureC;
+	  exampleObj.temperatureF = spo2Obj1.temperatureF;
+#endif
+#ifdef EXAMPLE_4
+	  SPO2_ReadTemperature(&spo2Obj1);
+	  exampleObj.temperatureC = spo2Obj1.temperatureC;
+	  exampleObj.temperatureF = spo2Obj1.temperatureF;
+#endif
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
