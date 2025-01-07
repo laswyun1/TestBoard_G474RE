@@ -121,7 +121,7 @@ int main(void)
 	  DWT->CYCCNT = 0;
 	  start = DWT->CYCCNT / 170;
 	  pMMG_Update(&pMMGObj);
-	  codeTime = DWT->CYCCNT / 170 - start;
+	  codeTime = DWT->CYCCNT/170 - start;
 
 	  totalCodeTime += (float)codeTime / 1000000;
 	  if (pMMGObj.pMMGData.pressureKPa > 140 || pMMGObj.pMMGData.pressureKPa < 90){
