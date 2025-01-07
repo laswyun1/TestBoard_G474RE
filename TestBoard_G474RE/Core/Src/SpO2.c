@@ -15,8 +15,23 @@ static uint8_t I2CTxData[WRITE_DATA_LENGTH_MAX] = {0};
 float sysMHz = 170;		// Change this value according to MCU
 
 /* For Heart Rate */
-int
+int16_t IR_AC_MAX = 20;
+int16_t IR_AC_MIN = -20;
 
+int16_t IR_AC_Signal_Curr = 0;
+int16_t IR_AC_Signal_Prev;
+int16_t IR_AC_Signal_min = 0;
+int16_t IR_AC_Signal_max = 0;
+int16_t IR_Average_Estimated;
+
+int16_t positiveEdge = 0;
+int16_t negativeEdge = 0;
+int32_t ir_avg_reg = 0;
+
+int16_t cbuf[32];
+uint8_t offset = 0;
+
+static const uint16_t FIRCoeffs[12] = {172, 321, 579, 927, 1360, 1858, 2390, 2916, 3391, 3768, 4012, 4096};
 
 
 
@@ -653,11 +668,19 @@ uint8_t SPO2_CheckForBeat(SPO2_Obj_t* spo2_Obj, int32_t sample)
 {
 	uint8_t beatDetected = 0;
 
+	IR_AC_Signal_Prev = IR_AC_Signal_Curr;
+
+	IR_Average_Estimated = averageDCEstimator(&ir_avg_reg, sample);
 
 }
 
 
-
+/* Average DC Estimator */
+int16_t SPO2_AverageDCEstimator(int32_t *p, uint16_t x)
+{
+	*p += ((((long) x << 15) - *p) >> 4);
+	return (*p >> 15);
+}
 
 
 

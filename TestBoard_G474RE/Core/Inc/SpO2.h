@@ -223,6 +223,10 @@ typedef enum _SPO2_CurrAmp_t {
 	SPO2_CURRAMP_50
 } SPO2_CurrAmp_t;
 
+typedef struct _SPO2_HR_t {
+
+} SPO2_HR_t;
+
 typedef struct _SPO2_Obj_t {
 	I2C_HandleTypeDef* SPO2_i2c;
 	uint8_t devReadAddr;
@@ -239,6 +243,8 @@ typedef struct _SPO2_Obj_t {
 
 	float temperatureC;
 	float temperatureF;
+
+	SPO2_HR_t HRobj;
 } SPO2_Obj_t;
 
 
