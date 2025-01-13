@@ -20,15 +20,15 @@ int16_t IR_AC_MIN = -20;
 
 int16_t IR_AC_Signal_Curr = 0;
 int16_t IR_AC_Signal_Prev;
-int16_t IR_AC_Signal_min = 0;
-int16_t IR_AC_Signal_max = 0;
+int16_t IR_AC_Signal_Min = 0;
+int16_t IR_AC_Signal_Max = 0;
 int16_t IR_Average_Estimated;
 
 int16_t positiveEdge = 0;
 int16_t negativeEdge = 0;
 int32_t ir_avg_reg = 0;
 
-int16_t cbuf[32];
+int16_t cBuf[32];
 uint8_t offset = 0;
 
 static const uint16_t FIRCoeffs[12] = {172, 321, 579, 927, 1360, 1858, 2390, 2916, 3391, 3768, 4012, 4096};
@@ -670,8 +670,42 @@ uint8_t SPO2_CheckForBeat(SPO2_Obj_t* spo2_Obj, int32_t sample)
 
 	IR_AC_Signal_Prev = IR_AC_Signal_Curr;
 
-	IR_Average_Estimated = averageDCEstimator(&ir_avg_reg, sample);
+	IR_Average_Estimated = SPO2_AverageDCEstimator(&ir_avg_reg, sample);
+	IR_AC_Signal_Curr = SPO2_LowPassFIR(sample - IR_Average_Estimated);
 
+	/* Detect the rising edge */
+	if ((IR_AC_Signal_Prev < 0) & (IR_AC_Signal_Curr >= 0)) {
+		IR_AC_MAX = IR_AC_Signal_Max;
+		IR_AC_MIN = IR_AC_Signal_Min;
+
+		positiveEdge = 1;
+		negativeEdge = 0;
+		IR_AC_Signal_Max = 0;
+
+		if ( ((IR_AC_MAX - IR_AC_MIN) > 20) & ((IR_AC_MAX - IR_AC_MIN) < 1000) )
+		{
+			beatDetected = 1;		// Heart-beat is detected
+		}
+	}
+
+	/* Detect the falling edge */
+	if ((IR_AC_Signal_Prev > 0) & (IR_AC_Signal_Curr <= 0)) {
+		positiveEdge = 0;
+		negativeEdge = 1;
+		IR_AC_Signal_Min = 0;
+	}
+
+	/* Find Maximum value in positive cycle */
+	if (positiveEdge & (IR_AC_Signal_Curr > IR_AC_Signal_Prev)) {
+		IR_AC_Signal_Max = IR_AC_Signal_Curr;
+	}
+
+	/* Find Minimum value in negative cycle */
+	if (negativeEdge & (IR_AC_Signal_Curr < IR_AC_Signal_Prev)) {
+		IR_AC_Signal_Min = IR_AC_Signal_Curr;
+	}
+
+	return beatDetected;
 }
 
 
@@ -683,6 +717,30 @@ int16_t SPO2_AverageDCEstimator(int32_t *p, uint16_t x)
 }
 
 
+/* Low Pass FIR filter */
+int16_t SPO2_LowPassFIR(int16_t input)
+{
+	cBuf[offset] = input;
+	int32_t output = SPO2_Multiply16Bit(FIRCoeffs[11], cBuf[(offset - 11) & 0x1F]);
+
+	for (uint8_t i = 0; i < 11; i++) {
+		output += SPO2_Multiply16Bit(FIRCoeffs[i], cBuf[(offset - i) & 0x1F] + cBuf[(offset - 22 + i) & 0x1F]);
+	}
+
+	offset++;
+	offset %= 32;
+
+	return (output >> 15);
+}
+
+
+
+int32_t SPO2_Multiply16Bit(int16_t x, int16_t y)
+{
+	int32_t result = (int32_t)((long)x * (long)y);
+
+	return result;
+}
 
 
 

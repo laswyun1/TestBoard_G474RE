@@ -40,8 +40,8 @@
 //#define EXAMPLE_1			// [Example 1] Get RED/IR/GREEN LEDs
 //#define EXAMPLE_2			// [Example 2] Presence Sensing (Detection of object)
 //#define EXAMPLE_3			// [Example 3] Temperature Sensing
-#define EXAMPLE_4			// [Example 4] Heart Rate Detection
-//#define EXAMPLE_5
+//#define EXAMPLE_4			// [Example 4] Heart Rate Detection
+#define EXAMPLE_5			// [Example 5] FIFO Readings
 //#define EXAMPLE_6
 //#define EXAMPLE_7
 //#define EXAMPLE_8
@@ -90,9 +90,17 @@ typedef struct _Ex_Obj_t {
 
 	/*---------- For [Ex4] ----------*/
 	uint8_t fingerIsOn;
-	uint8_t heartRate[4];		// You can change the buffer size
+	uint8_t heartRates[4];		// You can change the buffer size
 	uint8_t rateSpot;
+	uint8_t rateSize;
 	uint32_t lastBeat;
+
+	uint8_t BPM;
+	uint8_t BPM_avg;
+	/*-------------------------------*/
+
+
+	/*---------- For [Ex5] ----------*/
 
 	/*-------------------------------*/
 
@@ -176,8 +184,9 @@ int main(void)
   SPO2_EnableDIETEMPRDY(&spo2Obj1);
 #endif
 #ifdef EXAMPLE_4
-  SPO2_Setup(&spo2Obj1, SPO2_SAMPLEAVG_8, SPO2_LEDMODE_MULTILED, SPO2_ADCRANGE_12bit, SPO2_SAMPLERATE_100, SPO2_PULSEWIDTH_411, SPO2_CURRAMP_50);
-  SPO2_SetPulseAmpRed(&spo2Obj1, 0x0A);
+  SPO2_Setup(&spo2Obj1, SPO2_SAMPLEAVG_4, SPO2_LEDMODE_MULTILED, SPO2_ADCRANGE_12bit, SPO2_SAMPLERATE_400, SPO2_PULSEWIDTH_411, SPO2_CURRAMP_6p4);
+  SPO2_SetPulseAmpRed(&spo2Obj1, 0x0A);		// Turn on RED LED to low to indicate the sensor is running
+  SPO2_SetPulseAmpGreen(&spo2Obj1, 0x00);	// Turn off GREEN LED
 #endif
   /*-----------------------------------------------------------------------------------*/
 
@@ -196,6 +205,7 @@ int main(void)
 #ifdef EXAMPLE_2
 	  DWT->CYCCNT = 0;
 	  start = DWT->CYCCNT / 170;
+
 	  exampleObj.IR = SPO2_GetIR(&spo2Obj1);
 	  exampleObj.sampleFreq = 1 / ( (DWT->CYCCNT/170 - start)/1000000 );
 
@@ -214,9 +224,39 @@ int main(void)
 	  exampleObj.temperatureF = spo2Obj1.temperatureF;
 #endif
 #ifdef EXAMPLE_4
-	  SPO2_ReadTemperature(&spo2Obj1);
-	  exampleObj.temperatureC = spo2Obj1.temperatureC;
-	  exampleObj.temperatureF = spo2Obj1.temperatureF;
+	  /* Set the rate size */
+	  exampleObj.rateSize = 4;
+
+	  exampleObj.IR = SPO2_GetIR(&spo2Obj1);
+	  if (exampleObj.IR < 50000) {
+		  exampleObj.fingerIsOn = 0;	// Finger is NOT detected
+		  exampleObj.BPM = 0;
+		  exampleObj.BPM_avg = 0;
+	  }
+	  else {
+		  exampleObj.fingerIsOn = 1;	// Finger is detected
+	  }
+
+	  if (SPO2_CheckForBeat(&spo2Obj1, exampleObj.IR) == 1 && exampleObj.fingerIsOn == 1) {
+		  uint32_t delta = DWT->CYCCNT / 170 - exampleObj.lastBeat;
+		  exampleObj.lastBeat = DWT->CYCCNT / 170;
+
+		  exampleObj.BPM = 60 / (delta/1000000.0);
+
+		  /* Averaging (ex)4-sample */
+		  if ((exampleObj.BPM < 255) & (exampleObj.BPM > 20)) {
+			  exampleObj.heartRates[exampleObj.rateSpot++] = exampleObj.BPM;
+			  exampleObj.rateSpot %= exampleObj.rateSize;
+
+			  uint16_t tempBPM = 0;
+			  for (uint8_t i = 0; i < exampleObj.rateSize; i++) {
+				  tempBPM += exampleObj.heartRates[i];
+				  if (i == exampleObj.rateSize-1) {
+					  exampleObj.BPM_avg = tempBPM / exampleObj.rateSize;
+				  }
+			  }
+		  }
+	  }
 #endif
 
     /* USER CODE END WHILE */

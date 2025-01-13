@@ -224,7 +224,8 @@ typedef enum _SPO2_CurrAmp_t {
 } SPO2_CurrAmp_t;
 
 typedef struct _SPO2_HR_t {
-
+	uint8_t BPM;
+	uint8_t BPM_avg;
 } SPO2_HR_t;
 
 typedef struct _SPO2_Obj_t {
@@ -280,7 +281,10 @@ uint8_t SPO2_SafeCheck(SPO2_Obj_t* spo2_Obj, uint32_t timeOut);
 void SPO2_BitMask(SPO2_Obj_t* spo2_Obj, uint8_t regAddr, uint8_t mask, uint8_t setBit);
 uint8_t SPO2_ReadReg(I2C_HandleTypeDef* hi2c, uint8_t devReadAddr, uint8_t regAddr, uint8_t* readBuff, uint8_t size);
 uint8_t SPO2_WriteReg(I2C_HandleTypeDef* hi2c, uint8_t devWriteAddr, uint8_t regAddr, uint8_t* writeBuff, uint8_t size);
-
+uint8_t SPO2_CheckForBeat(SPO2_Obj_t* spo2_Obj, int32_t sample);
+int16_t SPO2_AverageDCEstimator(int32_t *p, uint16_t x);
+int16_t SPO2_LowPassFIR(int16_t input);
+int32_t SPO2_Multiply16Bit(int16_t x, int16_t y);
 
 
 #endif /* INC_SPO2_H_ */
