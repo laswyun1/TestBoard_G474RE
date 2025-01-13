@@ -25,6 +25,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdio.h>
+#include <string.h>
 #include "pMMG.h"
 /* USER CODE END Includes */
 
@@ -53,6 +55,14 @@ float codeTime = 0;		// usec
 
 float totalCodeTime = 0;	// sec
 uint32_t errCnt = 0;
+
+// For UART Transmit //
+uint8_t uartTxBuf[256];
+char* txString;
+
+float uartTxStartTime = 0;
+float uartTxTime = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -182,17 +192,15 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-//	if (htim == &htim3) {
-//		DWT->CYCCNT = 0;
-//		start = DWT->CYCCNT / 170;
-//		pMMG_Update(&pMMGObj);
-//		codeTime = DWT->CYCCNT / 170 - start;
-//
-//		totalCodeTime += (float)codeTime / 1000000;
-//		if (pMMGObj.pMMGData.pressureKPa > 140 || pMMGObj.pMMGData.pressureKPa < 90){
-//			errCnt++;
-//		}
-//	}
+	if (htim == &htim3) {
+		uartTxStartTime = DWT->CYCCNT / 170;
+
+		txString = "Hello, World!\n";
+		sprintf((char*)uartTxBuf, txString);
+		HAL_UART_Transmit(&hlpuart1, uartTxBuf, strlen(txString), 100);
+
+		uartTxTime = DWT->CYCCNT / 170 - uartTxStartTime;
+	}
 }
 /* USER CODE END 4 */
 
