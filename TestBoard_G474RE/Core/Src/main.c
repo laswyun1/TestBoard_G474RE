@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
 #include "usart.h"
 #include "spi.h"
 #include "tim.h"
@@ -58,10 +59,14 @@ uint32_t errCnt = 0;
 
 // For UART Transmit //
 uint8_t uartTxBuf[256];
-char* txString;
+//char* txString;
+char splitString[] = ",";
+char strNum[20];
 
 float uartTxStartTime = 0;
 float uartTxTime = 0;
+
+uint32_t interruptCnt = 0;
 
 /* USER CODE END PV */
 
@@ -104,6 +109,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_LPUART1_UART_Init();
   MX_TIM3_Init();
   MX_SPI3_Init();
@@ -128,15 +134,15 @@ int main(void)
   while (1)
   {
 	  /* Reading pMMG */
-	  DWT->CYCCNT = 0;
-	  start = DWT->CYCCNT / 170;
-	  pMMG_Update(&pMMGObj);
-	  codeTime = DWT->CYCCNT/170 - start;
-
-	  totalCodeTime += (float)codeTime / 1000000;
-	  if (pMMGObj.pMMGData.pressureKPa > 140 || pMMGObj.pMMGData.pressureKPa < 90){
-		  errCnt++;
-	  }
+//	  DWT->CYCCNT = 0;
+//	  start = DWT->CYCCNT / 170;
+//	  pMMG_Update(&pMMGObj);
+//	  codeTime = DWT->CYCCNT/170 - start;
+//
+//	  totalCodeTime += (float)codeTime / 1000000;
+//	  if (pMMGObj.pMMGData.pressureKPa > 140 || pMMGObj.pMMGData.pressureKPa < 90){
+//		  errCnt++;
+//	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -191,15 +197,29 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+uint32_t i = 0;
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim == &htim3) {
+//		uartTxTime = DWT->CYCCNT/170 - uartTxStartTime;
 		uartTxStartTime = DWT->CYCCNT / 170;
 
-		txString = "Hello, World!\n";
+		char txString[100] = "";
+		sprintf(txString, "%ld", interruptCnt);
+
+		strcat(txString, splitString);
+		char iNum[10];
+		sprintf(iNum, "%ld\n", (uint32_t)uartTxTime);
+
+		strcat(txString, iNum);
+
 		sprintf((char*)uartTxBuf, txString);
-		HAL_UART_Transmit(&hlpuart1, uartTxBuf, strlen(txString), 100);
+
+		HAL_UART_Transmit_DMA(&hlpuart1, uartTxBuf, 30);
 
 		uartTxTime = DWT->CYCCNT / 170 - uartTxStartTime;
+//		uartTxStartTime = DWT->CYCCNT/170;
+
+		interruptCnt++;
 	}
 }
 /* USER CODE END 4 */
