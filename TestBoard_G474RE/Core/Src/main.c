@@ -62,6 +62,7 @@ uint32_t errCnt = 0;
 uint8_t uartTxBuf[256];
 uint8_t uartBufSize = 0;
 char splitString[1] = ",";
+char newLine[1] = "\n";
 char strBuf_8bit[3];
 char strBuf_16bit[5];
 char strBuf_32bit[10];
@@ -225,6 +226,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
 		sprintf(strBuf_32bit, "%lu", data2);
 		strcat(uartTxBufChar, strBuf_32bit);
+
+		/* Add "\n" in the end of data */
+		strcat(uartTxBufChar, newLine);
 
 		sprintf((char*)uartTxBuf, uartTxBufChar);
 		uartBufSize = strlen(uartTxBufChar);
