@@ -28,6 +28,7 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <string.h>
+
 #include "pMMG.h"
 /* USER CODE END Includes */
 
@@ -59,22 +60,20 @@ uint32_t errCnt = 0;
 
 
 // For UART Transmit //
-uint8_t uartTxBuf[256];
+uint8_t uartTxBuf[50];
 uint8_t uartBufSize = 0;
-char splitString[1] = ",";
-char newLine[1] = "\n";
+char splitString[2] = ",";
+char newLine[2] = "\n";
 char strBuf_8bit[3];
 char strBuf_16bit[5];
 char strBuf_32bit[10];
-char uartTxBufChar[100] = "";
-
-
+char uartTxBufChar[50] = "";
 
 float uartTxStartTime = 0;
 float uartTxTime = 0;
 
 uint32_t interruptCnt = 0;
-
+uint8_t interruptPeriod = 2; 	// Change with IOC file, [ms]
 
 // For GPIO EXTI //
 uint8_t GPIO_EXTI_FLAG = 0;
@@ -209,14 +208,16 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-uint32_t i = 0;
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim == &htim3) {
 		uartTxStartTime = DWT->CYCCNT / 170;
 
+		/* Get pMMG Data */
+		pMMG_Update(&pMMGObj);
+
 		/* Assign the Data to send */
 		uint32_t data1 = interruptCnt;
-		uint32_t data2 = (uint32_t)uartTxTime;
+		float data2 = (float)pMMGObj.pMMGData.pressureKPa;
 
 		/* Append 1st component to sent */
 		sprintf(uartTxBufChar, "%lu", data1);
@@ -224,7 +225,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		/* Append 2nd component to sent */
 		strcat(uartTxBufChar, splitString);
 		memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
-		sprintf(strBuf_32bit, "%lu", data2);
+		sprintf(strBuf_32bit, "%.2f", data2);
 		strcat(uartTxBufChar, strBuf_32bit);
 
 		/* Add "\n" in the end of data */
@@ -237,7 +238,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 		uartTxTime = DWT->CYCCNT / 170 - uartTxStartTime;
 
-		interruptCnt++;
+		interruptCnt = interruptCnt + interruptPeriod;
 	}
 }
 
