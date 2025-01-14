@@ -57,16 +57,27 @@ float codeTime = 0;		// usec
 float totalCodeTime = 0;	// sec
 uint32_t errCnt = 0;
 
+
 // For UART Transmit //
 uint8_t uartTxBuf[256];
-//char* txString;
-char splitString[] = ",";
-char strNum[20];
+uint8_t uartBufSize = 0;
+char splitString[1] = ",";
+char strBuf_8bit[3];
+char strBuf_16bit[5];
+char strBuf_32bit[10];
+char uartTxBufChar[100] = "";
+
+
 
 float uartTxStartTime = 0;
 float uartTxTime = 0;
 
 uint32_t interruptCnt = 0;
+
+
+// For GPIO EXTI //
+uint8_t GPIO_EXTI_FLAG = 0;
+
 
 /* USER CODE END PV */
 
@@ -125,7 +136,7 @@ int main(void)
   state = pMMG_Init(&pMMGObj, &hspi3, GPIOA, GPIO_PIN_4);
 
   /* If you use Timer Interrupt */
-  HAL_TIM_Base_Start_IT(&htim3);
+//  HAL_TIM_Base_Start_IT(&htim3);
 
   /* USER CODE END 2 */
 
@@ -200,26 +211,45 @@ void SystemClock_Config(void)
 uint32_t i = 0;
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim == &htim3) {
-//		uartTxTime = DWT->CYCCNT/170 - uartTxStartTime;
 		uartTxStartTime = DWT->CYCCNT / 170;
 
-		char txString[100] = "";
-		sprintf(txString, "%ld", interruptCnt);
+		/* Assign the Data to send */
+		uint32_t data1 = interruptCnt;
+		uint32_t data2 = (uint32_t)uartTxTime;
 
-		strcat(txString, splitString);
-		char iNum[10];
-		sprintf(iNum, "%ld\n", (uint32_t)uartTxTime);
+		/* Append 1st component to sent */
+		sprintf(uartTxBufChar, "%lu", data1);
 
-		strcat(txString, iNum);
+		/* Append 2nd component to sent */
+		strcat(uartTxBufChar, splitString);
+		memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
+		sprintf(strBuf_32bit, "%lu", data2);
+		strcat(uartTxBufChar, strBuf_32bit);
 
-		sprintf((char*)uartTxBuf, txString);
+		sprintf((char*)uartTxBuf, uartTxBufChar);
+		uartBufSize = strlen(uartTxBufChar);
 
-		HAL_UART_Transmit_DMA(&hlpuart1, uartTxBuf, 30);
+		HAL_UART_Transmit_DMA(&hlpuart1, uartTxBuf, uartBufSize);
 
 		uartTxTime = DWT->CYCCNT / 170 - uartTxStartTime;
-//		uartTxStartTime = DWT->CYCCNT/170;
 
 		interruptCnt++;
+	}
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if (GPIO_Pin == GPIO_PIN_13 && GPIO_EXTI_FLAG == 0) {
+		interruptCnt = 0;
+		GPIO_EXTI_FLAG = 1;
+
+		HAL_TIM_Base_Start_IT(&htim3);
+	}
+
+	else if (GPIO_Pin == GPIO_PIN_13 && GPIO_EXTI_FLAG == 1) {
+		interruptCnt = 0;
+		GPIO_EXTI_FLAG = 0;
+
+		HAL_TIM_Base_Stop_IT(&htim3);
 	}
 }
 /* USER CODE END 4 */
