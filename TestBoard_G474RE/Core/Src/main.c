@@ -52,10 +52,6 @@
 /* USER CODE BEGIN PV */
 pMMG_Obj_t pMMGObj;
 uint8_t state = 0;
-float start = 0;
-float codeTime = 0;		// usec
-
-float totalCodeTime = 0;	// sec
 uint32_t errCnt = 0;
 
 
@@ -69,8 +65,12 @@ char strBuf_16bit[5];
 char strBuf_32bit[10];
 char uartTxBufChar[50] = "";
 
-float uartTxStartTime = 0;
-float uartTxTime = 0;
+
+uint32_t startTick = 0;
+uint32_t endTick = 0;
+uint32_t codeTimeTick = 0;
+float codeTime = 0;			// usec
+float totalCodeTime = 0; 	// sec
 
 uint32_t interruptCnt = 0;
 uint8_t interruptPeriod = 2; 	// Change with IOC file, [ms]
@@ -211,7 +211,7 @@ void SystemClock_Config(void)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim == &htim3) {
 		/* Time check start */
-		uartTxStartTime = DWT->CYCCNT / 170;
+		startTick = DWT->CYCCNT;
 
 		/* Get pMMG Data */
 		pMMG_Update(&pMMGObj);
@@ -237,15 +237,18 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 		HAL_UART_Transmit_DMA(&hlpuart1, uartTxBuf, uartBufSize);
 
-		interruptCnt = interruptCnt + interruptPeriod;
-
 
 		/* Time check end */
-		uartTxTime = DWT->CYCCNT / 170 - uartTxStartTime;
+		interruptCnt = interruptCnt + interruptPeriod;
+
+		endTick = DWT->CYCCNT;
+		codeTimeTick = endTick - startTick;
 		// Roll-over for overflow
-		if (uartTxTime < 0) {
-			uartTxTime = (4294967295 - uartTxStartTime) + DWT->CYCCNT / 170 + 1;
+		if (codeTimeTick < 0) {
+			codeTimeTick = (4294967295 - startTick) + endTick + 1;
 		}
+		codeTime = codeTimeTick / 170;
+
 	}
 }
 
