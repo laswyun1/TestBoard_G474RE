@@ -210,6 +210,7 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim == &htim3) {
+		/* Time check start */
 		uartTxStartTime = DWT->CYCCNT / 170;
 
 		/* Get pMMG Data */
@@ -236,9 +237,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 		HAL_UART_Transmit_DMA(&hlpuart1, uartTxBuf, uartBufSize);
 
-		uartTxTime = DWT->CYCCNT / 170 - uartTxStartTime;
-
 		interruptCnt = interruptCnt + interruptPeriod;
+
+
+		/* Time check end */
+		uartTxTime = DWT->CYCCNT / 170 - uartTxStartTime;
+		// Roll-over for overflow
+		if (uartTxTime < 0) {
+			uartTxTime = (4294967295 - uartTxStartTime) + DWT->CYCCNT / 170 + 1;
+		}
 	}
 }
 
