@@ -119,10 +119,17 @@ uint16_t FSRvalue[2] = {0};		// 0: PA0, 1: PA1
 uint16_t FSR_L = 0; 			// 0: PA0
 uint16_t FSR_R = 0;				// 1: PA1
 
-float start = 0;
-float codeTime = 0;			// usec
 
+
+uint32_t startTick = 0;
+uint32_t endTick = 0;
+uint32_t codeTimeTick = 0;
+float codeTime = 0;			// usec
 float totalCodeTime = 0; 	// sec
+
+uint32_t interruptCnt = 0;
+uint32_t interruptPeriod = 2;		// Timer Interrupt [2ms]
+uint8_t GPIO_EXTI_FLAG = 0;
 
 /* USER CODE END PV */
 
@@ -205,7 +212,7 @@ int main(void)
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)FSRvalue, 2);
 
   /* If you use Timer Interrupt */
-  HAL_TIM_Base_Start_IT(&htim3);
+//  HAL_TIM_Base_Start_IT(&htim3);
 
   /* USER CODE END 2 */
 
@@ -270,9 +277,8 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim == &htim3) {
-		DWT->CYCCNT = 0;
-		start = DWT->CYCCNT / 170;
-
+		/* Time check start */
+		startTick = DWT->CYCCNT;
 
 		/* (4) 8-pMMG measurement with Extended G474RE Board by 3-phases [ 4.22ms = (1.220ms + 3*70us)*2 + (1.220ms + 2*70us) ] */
 		pMMG_Update_multiple_3(&pMMGObj1, &pMMGObj4, &pMMGObj7);
@@ -300,39 +306,48 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		///////////////////////////////////////////////////////////////////////////////
 
 
-		codeTime = DWT->CYCCNT / 170 - start;
-		totalCodeTime += (float)codeTime / 1000000;
+		/* Time check end */
+		interruptCnt = interruptCnt + interruptPeriod;
+
+		endTick = DWT->CYCCNT;
+		codeTimeTick = endTick - startTick;
+		// Roll-over for overflow
+		if (codeTimeTick < 0) {
+			codeTimeTick = (4294967295 - startTick) + endTick + 1;
+		}
+		codeTime = codeTimeTick / 170;
 
 
-		if (pMMGObj1.pMMGData.pressureKPa > 150 || pMMGObj1.pMMGData.pressureKPa < 90) {
+		/* Error Check */
+		if (pMMGObj1.pMMGData.pressureKPa > 200 || pMMGObj1.pMMGData.pressureKPa < 70) {
 			totalpMMG.pMMG_err.err1++;
 			totalpMMG.pMMG_err.totalErr++;
 		}
-		if (pMMGObj2.pMMGData.pressureKPa > 150 || pMMGObj2.pMMGData.pressureKPa < 90) {
+		if (pMMGObj2.pMMGData.pressureKPa > 200 || pMMGObj2.pMMGData.pressureKPa < 70) {
 			totalpMMG.pMMG_err.err2++;
 			totalpMMG.pMMG_err.totalErr++;
 		}
-		if (pMMGObj3.pMMGData.pressureKPa > 150 || pMMGObj3.pMMGData.pressureKPa < 90) {
+		if (pMMGObj3.pMMGData.pressureKPa > 200 || pMMGObj3.pMMGData.pressureKPa < 70) {
 			totalpMMG.pMMG_err.err3++;
 			totalpMMG.pMMG_err.totalErr++;
 		}
-		if (pMMGObj4.pMMGData.pressureKPa > 150 || pMMGObj4.pMMGData.pressureKPa < 90) {
+		if (pMMGObj4.pMMGData.pressureKPa > 200 || pMMGObj4.pMMGData.pressureKPa < 70) {
 			totalpMMG.pMMG_err.err4++;
 			totalpMMG.pMMG_err.totalErr++;
 		}
-		if (pMMGObj5.pMMGData.pressureKPa > 150 || pMMGObj5.pMMGData.pressureKPa < 90) {
+		if (pMMGObj5.pMMGData.pressureKPa > 200 || pMMGObj5.pMMGData.pressureKPa < 70) {
 			totalpMMG.pMMG_err.err5++;
 			totalpMMG.pMMG_err.totalErr++;
 		}
-		if (pMMGObj6.pMMGData.pressureKPa > 150 || pMMGObj6.pMMGData.pressureKPa < 90) {
+		if (pMMGObj6.pMMGData.pressureKPa > 200 || pMMGObj6.pMMGData.pressureKPa < 70) {
 			totalpMMG.pMMG_err.err6++;
 			totalpMMG.pMMG_err.totalErr++;
 		}
-		if (pMMGObj7.pMMGData.pressureKPa > 150 || pMMGObj7.pMMGData.pressureKPa < 90) {
+		if (pMMGObj7.pMMGData.pressureKPa > 200 || pMMGObj7.pMMGData.pressureKPa < 70) {
 			totalpMMG.pMMG_err.err7++;
 			totalpMMG.pMMG_err.totalErr++;
 		}
-		if (pMMGObj8.pMMGData.pressureKPa > 150 || pMMGObj8.pMMGData.pressureKPa < 90) {
+		if (pMMGObj8.pMMGData.pressureKPa > 200 || pMMGObj8.pMMGData.pressureKPa < 70) {
 			totalpMMG.pMMG_err.err8++;
 			totalpMMG.pMMG_err.totalErr++;
 		}
@@ -341,6 +356,22 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		/* Check FSR values */
 		FSR_L = FSRvalue[0];
 		FSR_R = FSRvalue[1];
+	}
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if (GPIO_Pin == GPIO_PIN_13 && GPIO_EXTI_FLAG == 0) {
+		interruptCnt = 0;
+		GPIO_EXTI_FLAG = 1;
+
+		HAL_TIM_Base_Start_IT(&htim3);
+	}
+
+	else if (GPIO_Pin == GPIO_PIN_13 && GPIO_EXTI_FLAG == 1) {
+		interruptCnt = 0;
+		GPIO_EXTI_FLAG = 0;
+
+		HAL_TIM_Base_Stop_IT(&htim3);
 	}
 }
 /* USER CODE END 4 */
