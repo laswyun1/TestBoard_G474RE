@@ -128,7 +128,7 @@ float codeTime = 0;			// usec
 float totalCodeTime = 0; 	// sec
 
 uint32_t interruptCnt = 0;
-uint32_t interruptPeriod = 2;		// Timer Interrupt [2ms]
+uint32_t interruptPeriod = 5;		// Timer Interrupt [5ms]
 uint8_t GPIO_EXTI_FLAG = 0;
 
 /* USER CODE END PV */
