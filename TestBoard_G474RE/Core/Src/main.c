@@ -53,6 +53,10 @@ float codeTime = 0;		// usec
 
 float totalCodeTime = 0;	// sec
 uint32_t errCnt = 0;
+
+uint32_t interruptCnt = 0;
+uint32_t interruptPeriod = 2;		// Timer Interrupt [2ms]
+uint8_t GPIO_EXTI_FLAG = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -109,7 +113,7 @@ int main(void)
   state = pMMG_Init(&pMMGObj, &hspi3, GPIOA, GPIO_PIN_4);
 
   /* If you use Timer Interrupt */
-  HAL_TIM_Base_Start_IT(&htim3);
+//  HAL_TIM_Base_Start_IT(&htim3);
 
   /* USER CODE END 2 */
 
@@ -118,15 +122,15 @@ int main(void)
   while (1)
   {
 	  /* Reading pMMG */
-	  DWT->CYCCNT = 0;
-	  start = DWT->CYCCNT / 170;
-	  pMMG_Update(&pMMGObj);
-	  codeTime = DWT->CYCCNT/170 - start;
-
-	  totalCodeTime += (float)codeTime / 1000000;
-	  if (pMMGObj.pMMGData.pressureKPa > 140 || pMMGObj.pMMGData.pressureKPa < 90){
-		  errCnt++;
-	  }
+//	  DWT->CYCCNT = 0;
+//	  start = DWT->CYCCNT / 170;
+//	  pMMG_Update(&pMMGObj);
+//	  codeTime = DWT->CYCCNT/170 - start;
+//
+//	  totalCodeTime += (float)codeTime / 1000000;
+//	  if (pMMGObj.pMMGData.pressureKPa > 140 || pMMGObj.pMMGData.pressureKPa < 90){
+//		  errCnt++;
+//	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -182,17 +186,41 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-//	if (htim == &htim3) {
-//		DWT->CYCCNT = 0;
-//		start = DWT->CYCCNT / 170;
-//		pMMG_Update(&pMMGObj);
-//		codeTime = DWT->CYCCNT / 170 - start;
-//
-//		totalCodeTime += (float)codeTime / 1000000;
-//		if (pMMGObj.pMMGData.pressureKPa > 140 || pMMGObj.pMMGData.pressureKPa < 90){
-//			errCnt++;
-//		}
-//	}
+	if (htim == &htim3) {
+		/* Time check start */
+		start = DWT->CYCCNT / 170;
+
+		/* Get pMMG Data */
+		pMMG_Update(&pMMGObj);
+		interruptCnt = interruptCnt + interruptPeriod;
+
+		/* Time check end */
+		codeTime = DWT->CYCCNT / 170 - start;
+		// Roll-over for overflow
+		if (codeTime < 0) {
+			codeTime = (4294967295 - start) + DWT->CYCCNT / 170 + 1;
+		}
+
+		if (pMMGObj.pMMGData.pressureKPa > 200 || pMMGObj.pMMGData.pressureKPa < 70){
+			errCnt++;
+		}
+	}
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if (GPIO_Pin == GPIO_PIN_13 && GPIO_EXTI_FLAG == 0) {
+		interruptCnt = 0;
+		GPIO_EXTI_FLAG = 1;
+
+		HAL_TIM_Base_Start_IT(&htim3);
+	}
+
+	else if (GPIO_Pin == GPIO_PIN_13 && GPIO_EXTI_FLAG == 1) {
+		interruptCnt = 0;
+		GPIO_EXTI_FLAG = 0;
+
+		HAL_TIM_Base_Stop_IT(&htim3);
+	}
 }
 /* USER CODE END 4 */
 
