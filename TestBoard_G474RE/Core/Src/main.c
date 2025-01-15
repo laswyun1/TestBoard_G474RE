@@ -48,11 +48,14 @@
 /* USER CODE BEGIN PV */
 pMMG_Obj_t pMMGObj;
 uint8_t state = 0;
-float start = 0;
-float codeTime = 0;		// usec
-
-float totalCodeTime = 0;	// sec
 uint32_t errCnt = 0;
+
+
+uint32_t startTick = 0;
+uint32_t endTick = 0;
+uint32_t codeTimeTick = 0;
+float codeTime = 0;			// usec
+float totalCodeTime = 0; 	// sec
 
 uint32_t interruptCnt = 0;
 uint32_t interruptPeriod = 2;		// Timer Interrupt [2ms]
@@ -188,18 +191,21 @@ void SystemClock_Config(void)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim == &htim3) {
 		/* Time check start */
-		start = DWT->CYCCNT / 170;
+		startTick = DWT->CYCCNT;
 
 		/* Get pMMG Data */
 		pMMG_Update(&pMMGObj);
-		interruptCnt = interruptCnt + interruptPeriod;
 
 		/* Time check end */
-		codeTime = DWT->CYCCNT / 170 - start;
+		interruptCnt = interruptCnt + interruptPeriod;
+
+		endTick = DWT->CYCCNT;
+		codeTimeTick = endTick - startTick;
 		// Roll-over for overflow
-		if (codeTime < 0) {
-			codeTime = (4294967295 - start) + DWT->CYCCNT / 170 + 1;
+		if (codeTimeTick < 0) {
+			codeTimeTick = (4294967295 - startTick) + endTick + 1;
 		}
+		codeTime = codeTimeTick / 170;
 
 		if (pMMGObj.pMMGData.pressureKPa > 200 || pMMGObj.pMMGData.pressureKPa < 70){
 			errCnt++;
