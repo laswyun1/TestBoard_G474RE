@@ -234,8 +234,6 @@ void pMMG_DisableCS(pMMG_Obj_t* pMMG_Obj) {
 	HAL_GPIO_WritePin(pMMG_Obj->pMMG_CS_GPIO_Port, pMMG_Obj->pMMG_CS_Pin, GPIO_PIN_SET);
 }
 
-
-
 void us_Delay(uint32_t us_delay)
 {
 	uint32_t tickStart = DWT->CYCCNT;
