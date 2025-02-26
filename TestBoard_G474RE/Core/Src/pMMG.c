@@ -239,7 +239,7 @@ void us_Delay(uint32_t us_delay)
 	uint32_t tickStart = DWT->CYCCNT;
 	uint32_t tickDelay = us_delay * sysMHz;
 
-	if (tickStart > 4294967295 - (us_delay * 170)) {
+	if (tickStart > 4294967295 - (us_delay * sysMHz)) {
 		uint32_t elapsed = 4294967295 - tickStart;
 		uint32_t remainder = tickDelay - elapsed;
 		while ( DWT->CYCCNT >= tickStart && DWT->CYCCNT <= 4294967295 )
