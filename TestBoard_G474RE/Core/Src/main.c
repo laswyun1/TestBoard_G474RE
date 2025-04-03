@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
 #include "i2c.h"
 #include "usart.h"
 #include "tim.h"
@@ -25,7 +26,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -128,6 +130,17 @@ typedef struct _MPU6050Data_t {
 
 /* USER CODE BEGIN PV */
 
+/*---------- For UART Transmit ----------*/
+uint8_t uartBufSize = 0;
+char splitString[2] = ",";
+char newLine[2] = "\n";
+char strBuf_8bit[3];
+char strBuf_16bit[5];
+char strBuf_32bit[10];
+char uartTxBufChar[100] = "";
+uint8_t uartTxBuf[100];
+/*--------------------------------------*/
+
 uint8_t rawData[14] = {0};
 MPU6050Data_t IMUData;
 
@@ -137,6 +150,7 @@ uint32_t codeTime = 0;
 uint32_t totalElapsedTime = 0;
 uint32_t breakRT = 0;
 uint8_t startDAQ = 0;
+uint8_t GPIO_EXTI_FLAG = 0;
 
 uint8_t cmd = 0;
 uint8_t calibDone = 0;
@@ -188,6 +202,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_LPUART1_UART_Init();
   MX_I2C1_Init();
   MX_TIM3_Init();
@@ -215,10 +230,6 @@ int main(void)
   IMUData.gyrYoffset = -0.965673268;
   IMUData.gyrZoffset = 0.522041917;
 
-
-
-
-  HAL_TIM_Base_Start_IT(&htim3);
 
   /* USER CODE END 2 */
 
@@ -280,46 +291,6 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-	if (htim->Instance == htim3.Instance){
-
-		CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-		DWT->CYCCNT = 0;
-		DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
-
-
-		/* Choose the Function you want to RUN */
-		GetIMUValues(&hi2c1, 1);
-		/* ----------------------------------- */
-
-		if (msTime == 1000){
-			msTime = 0;
-			totalElapsedTime++;
-		}
-
-		/* Code End */
-		codeTime = DWT->CYCCNT/170;
-		msTime++;
-
-		if (codeTime > 1000){
-			breakRT++;
-		}
-
-
-
-		if (startDAQ == 0) {
-			loopCnt = 0;
-			startDAQ = 1;
-		}
-		else if (startDAQ == 1) {
-			loopCnt++;
-		}
-	}
-}
-
-
 uint8_t Init6Axis(I2C_HandleTypeDef* hi2c)
 {
 	uint8_t state = 0;
@@ -429,6 +400,122 @@ void CalibrateIMU(I2C_HandleTypeDef* hi2c)
 		IMUData.accYoffset -= 1;
 
 		calibDone = 1;
+	}
+}
+
+
+
+
+
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if (htim->Instance == htim3.Instance){
+
+		CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+		DWT->CYCCNT = 0;
+		DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+
+
+		/*---------------------- Choose the Function you want to RUN -----------------------*/
+		GetIMUValues(&hi2c1, 1);
+
+//		/* Assign the Data to send */
+//		uint32_t data1 = loopCnt;
+//		float data2 = (float)IMUData.accX;
+//		float data3 = (float)IMUData.accY;
+//		float data4 = (float)IMUData.accZ;
+//		float data5 = (float)IMUData.gyrX;
+//		float data6 = (float)IMUData.gyrY;
+//		float data7 = (float)IMUData.gyrZ;
+//
+//		/* Append 1st component to sent */
+//		sprintf(uartTxBufChar, "%lu", data1);
+//
+//		/* Append 2nd component to sent */
+//		strcat(uartTxBufChar, splitString);
+//		memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
+//		sprintf(strBuf_32bit, "%.2f", data2);
+//		strcat(uartTxBufChar, strBuf_32bit);
+//
+//		/* Append 3rd component to sent */
+//		strcat(uartTxBufChar, splitString);
+//		memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
+//		sprintf(strBuf_32bit, "%.2f", data3);
+//		strcat(uartTxBufChar, strBuf_32bit);
+//
+//		/* Append 4th component to sent */
+//		strcat(uartTxBufChar, splitString);
+//		memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
+//		sprintf(strBuf_32bit, "%.2f", data4);
+//		strcat(uartTxBufChar, strBuf_32bit);
+//
+//		/* Append 5th component to sent */
+//		strcat(uartTxBufChar, splitString);
+//		memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
+//		sprintf(strBuf_32bit, "%.2f", data5);
+//		strcat(uartTxBufChar, strBuf_32bit);
+//
+//		/* Append 6th component to sent */
+//		strcat(uartTxBufChar, splitString);
+//		memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
+//		sprintf(strBuf_32bit, "%.2f", data6);
+//		strcat(uartTxBufChar, strBuf_32bit);
+//
+//		/* Append 7th component to sent */
+//		strcat(uartTxBufChar, splitString);
+//		memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
+//		sprintf(strBuf_32bit, "%.2f", data7);
+//		strcat(uartTxBufChar, strBuf_32bit);
+//
+//		/* Add "\n" in the end of data */
+//		strcat(uartTxBufChar, newLine);
+//
+//		sprintf((char*)uartTxBuf, uartTxBufChar);
+//		uartBufSize = strlen(uartTxBufChar);
+//
+//		HAL_UART_Transmit_DMA(&hlpuart1, uartTxBuf, uartBufSize);
+
+		/* -------------------------------------------------------------------------------- */
+
+
+
+		/*----------------------------------- Code End -----------------------------------*/
+		codeTime = DWT->CYCCNT/170;
+
+		if (msTime == 1000){
+			msTime = 0;
+			totalElapsedTime++;
+		}
+
+		msTime++;
+
+		if (codeTime > 1000){
+			breakRT++;
+		}
+
+		loopCnt++;
+		/*--------------------------------------------------------------------------------*/
+	}
+}
+
+
+
+
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if (GPIO_Pin == GPIO_PIN_13 && GPIO_EXTI_FLAG == 0) {
+		loopCnt = 0;
+		GPIO_EXTI_FLAG = 1;
+
+		HAL_TIM_Base_Start_IT(&htim3);
+	}
+
+	else if (GPIO_Pin == GPIO_PIN_13 && GPIO_EXTI_FLAG == 1) {
+		loopCnt = 0;
+		GPIO_EXTI_FLAG = 0;
+
+		HAL_TIM_Base_Stop_IT(&htim3);
 	}
 }
 
