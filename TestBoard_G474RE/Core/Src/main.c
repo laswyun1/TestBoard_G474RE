@@ -132,9 +132,11 @@ uint8_t rawData[14] = {0};
 MPU6050Data_t IMUData;
 
 uint16_t msTime = 0;
+uint32_t loopCnt = 0;
 uint32_t codeTime = 0;
 uint32_t totalElapsedTime = 0;
 uint32_t breakRT = 0;
+uint8_t startDAQ = 0;
 
 uint8_t cmd = 0;
 uint8_t calibDone = 0;
@@ -303,6 +305,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 		if (codeTime > 1000){
 			breakRT++;
+		}
+
+
+
+		if (startDAQ == 0) {
+			loopCnt = 0;
+			startDAQ = 1;
+		}
+		else if (startDAQ == 1) {
+			loopCnt++;
 		}
 	}
 }
