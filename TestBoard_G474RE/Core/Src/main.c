@@ -28,6 +28,8 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <string.h>
+
+//#include "usbd_cdc_if.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -117,8 +119,12 @@ typedef struct _MPU6050Data_t {
 #define MPU6050_TEMP_SCALE_FACTOR     			340.0f		// Temperature(Celsius) = (Temp register value) / 340.0 + 36.53
 #define MPU6050_TEMP_OFFSET      				36.53f
 
+/* For making Training data */
+#define SAVE_DATA_NUM							1000			// Time-series data number for DATASET
+#define UART_TERMINATE_PYTHON					78			// should be matched with PYTHON
 
-
+/* ON/OFF of UART sending */
+#define UART_ACTIVATE
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -131,7 +137,7 @@ typedef struct _MPU6050Data_t {
 /* USER CODE BEGIN PV */
 
 /*---------- For UART Transmit ----------*/
-uint8_t uartBufSize = 0;
+uint8_t uartTxBufSize = 0;
 char splitString[2] = ",";
 char newLine[2] = "\n";
 char strBuf_8bit[3];
@@ -139,6 +145,8 @@ char strBuf_16bit[5];
 char strBuf_32bit[10];
 char uartTxBufChar[100] = "";
 uint8_t uartTxBuf[100];
+
+uint8_t uartTxUpdate = 0;
 /*--------------------------------------*/
 
 uint8_t rawData[14] = {0};
@@ -166,6 +174,8 @@ uint8_t WriteReg(I2C_HandleTypeDef* hi2c);
 uint8_t ReadReg(I2C_HandleTypeDef* hi2c);
 uint8_t GetIMUValues(I2C_HandleTypeDef* hi2c, uint8_t CalibON);
 void CalibrateIMU(I2C_HandleTypeDef* hi2c);
+void PrepareUARTTxData(void);
+void TerminateUART(void);
 
 /* USER CODE END PFP */
 
@@ -203,9 +213,9 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_LPUART1_UART_Init();
   MX_I2C1_Init();
   MX_TIM3_Init();
+  MX_LPUART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
   CoreDebug->DEMCR &= ~CoreDebug_DEMCR_TRCENA_Msk;
@@ -237,6 +247,13 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+#ifdef UART_ACTIVATE
+	  if (uartTxUpdate == 1) {
+		  HAL_UART_Transmit_DMA(&hlpuart1, uartTxBuf, uartTxBufSize);
+//		  CDC_Transmit_FS((uint8_t*)uartTxBufChar, uartTxBufSize);
+		  uartTxUpdate = 0;
+	  }
+#endif
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -404,6 +421,92 @@ void CalibrateIMU(I2C_HandleTypeDef* hi2c)
 }
 
 
+void PrepareUARTTxData(void)
+{
+	/* Reset the buffers */
+	memset(uartTxBuf, 0, sizeof(uartTxBuf));
+	memset(uartTxBufChar, 0, sizeof(uartTxBufChar));
+
+	/* Assign the Data to send through UART */
+	uint32_t data1 = loopCnt;
+	float data2 = (float)IMUData.accX;
+//	float data3 = (float)IMUData.accY;
+//	float data4 = (float)IMUData.accZ;
+//	float data5 = (float)IMUData.gyrX;
+//	float data6 = (float)IMUData.gyrY;
+//	float data7 = (float)IMUData.gyrZ;
+
+	/* Append 1st component to sent */
+	sprintf(uartTxBufChar, "%lu", data1);
+
+	/* Append 2nd component to sent */
+	strcat(uartTxBufChar, splitString);
+	memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
+	sprintf(strBuf_32bit, "%.2f", data2);
+	strcat(uartTxBufChar, strBuf_32bit);
+
+//	/* Append 3rd component to sent */
+//	strcat(uartTxBufChar, splitString);
+//	memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
+//	sprintf(strBuf_32bit, "%.2f", data3);
+//	strcat(uartTxBufChar, strBuf_32bit);
+//
+//	/* Append 4th component to sent */
+//	strcat(uartTxBufChar, splitString);
+//	memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
+//	sprintf(strBuf_32bit, "%.2f", data4);
+//	strcat(uartTxBufChar, strBuf_32bit);
+//
+//	/* Append 5th component to sent */
+//	strcat(uartTxBufChar, splitString);
+//	memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
+//	sprintf(strBuf_32bit, "%.2f", data5);
+//	strcat(uartTxBufChar, strBuf_32bit);
+//
+//	/* Append 6th component to sent */
+//	strcat(uartTxBufChar, splitString);
+//	memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
+//	sprintf(strBuf_32bit, "%.2f", data6);
+//	strcat(uartTxBufChar, strBuf_32bit);
+//
+//	/* Append 7th component to sent */
+//	strcat(uartTxBufChar, splitString);
+//	memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
+//	sprintf(strBuf_32bit, "%.2f", data7);
+//	strcat(uartTxBufChar, strBuf_32bit);
+
+	/* Add "\n" in the end of data */
+	strcat(uartTxBufChar, newLine);
+
+	sprintf((char*)uartTxBuf, uartTxBufChar);
+	uartTxBufSize = strlen(uartTxBufChar);
+
+
+	/* Update the trigger */
+	uartTxUpdate = 1;
+}
+
+
+void TerminateUART(void)
+{
+	/* Reset the buffers */
+	memset(uartTxBuf, 0, sizeof(uartTxBuf));
+	memset(uartTxBufChar, 0, sizeof(uartTxBufChar));
+
+	/* Assign the Terminate Data to send through UART */
+	uint8_t terminateData = UART_TERMINATE_PYTHON;
+
+	/* Append "TERMINATION" component to sent */
+	sprintf(uartTxBufChar, "%u", terminateData);
+
+	/* Add "\n" in the end of data */
+	strcat(uartTxBufChar, newLine);
+
+	sprintf((char*)uartTxBuf, uartTxBufChar);
+	uartTxBufSize = strlen(uartTxBufChar);
+
+	uartTxUpdate = 1;
+}
 
 
 
@@ -417,70 +520,24 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 
 
+
 		/*---------------------- Choose the Function you want to RUN -----------------------*/
 		GetIMUValues(&hi2c1, 1);
 
-//		/* Assign the Data to send */
-//		uint32_t data1 = loopCnt;
-//		float data2 = (float)IMUData.accX;
-//		float data3 = (float)IMUData.accY;
-//		float data4 = (float)IMUData.accZ;
-//		float data5 = (float)IMUData.gyrX;
-//		float data6 = (float)IMUData.gyrY;
-//		float data7 = (float)IMUData.gyrZ;
-//
-//		/* Append 1st component to sent */
-//		sprintf(uartTxBufChar, "%lu", data1);
-//
-//		/* Append 2nd component to sent */
-//		strcat(uartTxBufChar, splitString);
-//		memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
-//		sprintf(strBuf_32bit, "%.2f", data2);
-//		strcat(uartTxBufChar, strBuf_32bit);
-//
-//		/* Append 3rd component to sent */
-//		strcat(uartTxBufChar, splitString);
-//		memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
-//		sprintf(strBuf_32bit, "%.2f", data3);
-//		strcat(uartTxBufChar, strBuf_32bit);
-//
-//		/* Append 4th component to sent */
-//		strcat(uartTxBufChar, splitString);
-//		memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
-//		sprintf(strBuf_32bit, "%.2f", data4);
-//		strcat(uartTxBufChar, strBuf_32bit);
-//
-//		/* Append 5th component to sent */
-//		strcat(uartTxBufChar, splitString);
-//		memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
-//		sprintf(strBuf_32bit, "%.2f", data5);
-//		strcat(uartTxBufChar, strBuf_32bit);
-//
-//		/* Append 6th component to sent */
-//		strcat(uartTxBufChar, splitString);
-//		memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
-//		sprintf(strBuf_32bit, "%.2f", data6);
-//		strcat(uartTxBufChar, strBuf_32bit);
-//
-//		/* Append 7th component to sent */
-//		strcat(uartTxBufChar, splitString);
-//		memset(strBuf_32bit, '\0', sizeof(strBuf_32bit));
-//		sprintf(strBuf_32bit, "%.2f", data7);
-//		strcat(uartTxBufChar, strBuf_32bit);
-//
-//		/* Add "\n" in the end of data */
-//		strcat(uartTxBufChar, newLine);
-//
-//		sprintf((char*)uartTxBuf, uartTxBufChar);
-//		uartBufSize = strlen(uartTxBufChar);
-//
-//		HAL_UART_Transmit_DMA(&hlpuart1, uartTxBuf, uartBufSize);
-
+		if (loopCnt < SAVE_DATA_NUM) {
+			PrepareUARTTxData();
+//			HAL_UART_Transmit_DMA(&hlpuart1, uartTxBuf, uartTxBufSize);
+		}
+		else if (loopCnt == SAVE_DATA_NUM) {
+			TerminateUART();
+//			HAL_UART_Transmit_DMA(&hlpuart1, uartTxBuf, uartTxBufSize);
+		}
 		/* -------------------------------------------------------------------------------- */
 
 
 
-		/*----------------------------------- Code End -----------------------------------*/
+
+		/*----------------------------------- Code End -------------------------------------*/
 		codeTime = DWT->CYCCNT/170;
 
 		if (msTime == 1000){
@@ -495,7 +552,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		}
 
 		loopCnt++;
-		/*--------------------------------------------------------------------------------*/
+		/*----------------------------------------------------------------------------------*/
 	}
 }
 
